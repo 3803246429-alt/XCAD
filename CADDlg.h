@@ -13,6 +13,12 @@ enum class CADMode {
     MODE_SELECT
 };
 
+enum class CADCommandType {
+    NONE,
+    LINE,
+    CIRCLE
+};
+
 
 class CCADDlg : public CDialogEx
 {
@@ -35,7 +41,11 @@ protected:
     bool m_bIsPanning;
     bool m_bShowPoints;
     bool m_bLineCommandActive;
+    bool m_bCircleCommandActive;
+    bool m_bCircleCenterPicked;
     CPoint m_lastMousePt;
+    Point2D m_circleCenter;
+    Point2D m_circlePreviewPoint;
 
     std::shared_ptr<CLine> m_pCurrentLine;
     CShapeManager m_shapeMgr;
@@ -74,11 +84,14 @@ protected:
 
 	void ProcessCommandLine(const CString& cmd);
 	void CancelCurrentDrawing();
+	void CancelActiveCommand();
 	void FinishCurrentDrawing(bool keepCommandActive);
 	void FocusCommandLine();
 	void RefreshCanvas();
 	bool SaveToCurrentPath();
 	bool SaveAsWithDialog();
+	void ActivateCommand(CADCommandType commandType);
+	std::shared_ptr<CLine> CreateCirclePolyline(const Point2D& center, double radius, int segments) const;
 
 	DECLARE_MESSAGE_MAP()
 };

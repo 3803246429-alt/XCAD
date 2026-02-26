@@ -5,6 +5,7 @@
 #include "afxdialogex.h"
 
 #include <afxdlgs.h>
+#include <cmath>
 #include <memory>
 #include <vector>
 
@@ -50,7 +51,11 @@ CCADDlg::CCADDlg(CWnd* pParent)
     , m_bIsDrawing(false)
     , m_bIsPanning(false)
     , m_bShowPoints(true)
-    , m_bLineCommandActive(false) {
+    , m_bLineCommandActive(false)
+    , m_bCircleCommandActive(false)
+    , m_bCircleCenterPicked(false)
+    , m_circleCenter(0.0, 0.0)
+    , m_circlePreviewPoint(0.0, 0.0) {
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
@@ -100,6 +105,38 @@ void CCADDlg::RefreshCanvas() {
     }
 }
 
+void CCADDlg::ActivateCommand(CADCommandType commandType) {
+    m_bLineCommandActive = false;
+    m_bCircleCommandActive = false;
+    m_bCircleCenterPicked = false;
+    m_pCurrentLine.reset();
+    m_bIsDrawing = false;
+
+    if (commandType == CADCommandType::LINE) {
+        m_currentMode = CADMode::MODE_DRAW;
+        m_bLineCommandActive = true;
+    } else if (commandType == CADCommandType::CIRCLE) {
+        m_currentMode = CADMode::MODE_DRAW;
+        m_bCircleCommandActive = true;
+    }
+
+    FocusCommandLine();
+}
+
+std::shared_ptr<CLine> CCADDlg::CreateCirclePolyline(const Point2D& center, double radius, int segments) const {
+    std::shared_ptr<CLine> circle = std::make_shared<CLine>();
+    if (segments < 8) segments = 8;
+    if (radius <= 0.0) return circle;
+
+    const double pi = 3.14159265358979323846;
+    for (int i = 0; i <= segments; ++i) {
+        double angle = (2.0 * pi * i) / static_cast<double>(segments);
+        circle->AddPoint(Point2D(center.x + radius * std::cos(angle), center.y + radius * std::sin(angle)));
+    }
+
+    return circle;
+}
+
 void CCADDlg::OnPaint() {
     CPaintDC dc(this);
 
@@ -118,6 +155,32 @@ void CCADDlg::OnPaint() {
 
     if (m_bIsDrawing && m_pCurrentLine) {
         m_pCurrentLine->Draw(&memDC, m_transform, true);
+    }
+
+    if (m_bCircleCommandActive && m_bCircleCenterPicked) {
+        const double dx = m_circlePreviewPoint.x - m_circleCenter.x;
+        const double dy = m_circlePreviewPoint.y - m_circleCenter.y;
+        const double radius = std::sqrt(dx * dx + dy * dy);
+
+        CPoint centerPt = m_transform.WorldToScreen(m_circleCenter);
+        CPoint previewPt = m_transform.WorldToScreen(m_circlePreviewPoint);
+
+        CPen dashPen(PS_DASH, 1, RGB(200, 200, 200));
+        CPen* oldPen = memDC.SelectObject(&dashPen);
+        int oldBkMode = memDC.SetBkMode(TRANSPARENT);
+
+        memDC.MoveTo(centerPt);
+        memDC.LineTo(previewPt);
+
+        CPoint radiusPt = m_transform.WorldToScreen(Point2D(m_circleCenter.x + radius, m_circleCenter.y));
+        int r = radiusPt.x - centerPt.x;
+        if (r < 0) r = -r;
+        if (r > 0) {
+            memDC.Ellipse(centerPt.x - r, centerPt.y - r, centerPt.x + r, centerPt.y + r);
+        }
+
+        memDC.SetBkMode(oldBkMode);
+        memDC.SelectObject(oldPen);
     }
 
     dc.BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), &memDC, 0, 0, SRCCOPY);
@@ -157,6 +220,22 @@ void CCADDlg::OnLButtonDown(UINT nFlags, CPoint point) {
             m_pCurrentLine->AddPoint(worldPt);
         }
         RefreshCanvas();
+    } else if (m_currentMode == CADMode::MODE_DRAW && m_bCircleCommandActive) {
+        if (!m_bCircleCenterPicked) {
+            m_bCircleCenterPicked = true;
+            m_circleCenter = worldPt;
+            m_circlePreviewPoint = worldPt;
+        } else {
+            const double dx = worldPt.x - m_circleCenter.x;
+            const double dy = worldPt.y - m_circleCenter.y;
+            const double radius = std::sqrt(dx * dx + dy * dy);
+            if (radius > 0.0001) {
+                m_shapeMgr.ExecuteCommand(std::make_unique<CAddLineCommand>(&m_shapeMgr, CreateCirclePolyline(m_circleCenter, radius, 96)));
+            }
+            m_bCircleCenterPicked = false;
+            m_bCircleCommandActive = false;
+        }
+        RefreshCanvas();
     }
 
     FocusCommandLine();
@@ -180,6 +259,14 @@ void CCADDlg::OnMouseMove(UINT nFlags, CPoint point) {
         auto& pts = const_cast<std::vector<Point2D>&>(m_pCurrentLine->GetPoints());
         if (!pts.empty()) pts.back() = worldPt;
         RefreshCanvas();
+        return;
+    }
+
+    if (m_bCircleCommandActive && m_bCircleCenterPicked) {
+        CRect rect = m_transform.GetScreenRect();
+        CPoint localPt(point.x - rect.left, point.y - rect.top);
+        m_circlePreviewPoint = m_transform.ScreenToWorld(localPt);
+        RefreshCanvas();
     }
 }
 
@@ -201,6 +288,8 @@ void CCADDlg::FinishCurrentDrawing(bool keepCommandActive) {
     m_bIsDrawing = false;
     m_pCurrentLine.reset();
     m_bLineCommandActive = keepCommandActive;
+    m_bCircleCommandActive = false;
+    m_bCircleCenterPicked = false;
     RefreshCanvas();
     FocusCommandLine();
 }
@@ -208,7 +297,11 @@ void CCADDlg::FinishCurrentDrawing(bool keepCommandActive) {
 void CCADDlg::OnRButtonDown(UINT nFlags, CPoint point) {
     UNREFERENCED_PARAMETER(nFlags);
     UNREFERENCED_PARAMETER(point);
-    FinishCurrentDrawing(false);
+    if (m_bIsDrawing && m_bLineCommandActive) {
+        FinishCurrentDrawing(false);
+    } else {
+        CancelActiveCommand();
+    }
 }
 
 BOOL CCADDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) {
@@ -245,7 +338,28 @@ void CCADDlg::OnMButtonUp(UINT nFlags, CPoint point) {
 void CCADDlg::CancelCurrentDrawing() {
     m_bIsDrawing = false;
     m_bLineCommandActive = false;
+    m_bCircleCommandActive = false;
+    m_bCircleCenterPicked = false;
     m_pCurrentLine.reset();
+    RefreshCanvas();
+    FocusCommandLine();
+}
+
+void CCADDlg::CancelActiveCommand() {
+    if (m_bIsDrawing && m_bLineCommandActive && m_pCurrentLine) {
+        auto& pts = const_cast<std::vector<Point2D>&>(m_pCurrentLine->GetPoints());
+        if (pts.size() > 1) pts.pop_back();
+        if (pts.size() >= 2) {
+            m_shapeMgr.ExecuteCommand(std::make_unique<CAddLineCommand>(&m_shapeMgr, m_pCurrentLine));
+        }
+    }
+
+    m_bIsDrawing = false;
+    m_pCurrentLine.reset();
+    m_bLineCommandActive = false;
+    m_bCircleCommandActive = false;
+    m_bCircleCenterPicked = false;
+
     RefreshCanvas();
     FocusCommandLine();
 }
@@ -275,14 +389,16 @@ void CCADDlg::ProcessCommandLine(const CString& cmd) {
     CString normalized = cmd;
     normalized.Trim();
     normalized.MakeUpper();
+    normalized.Replace(_T(" "), _T(""));
 
     if (normalized.IsEmpty()) return;
 
     if (normalized == _T("L") || normalized == _T("LINE") || normalized == _T("PL") || normalized == _T("PLINE")) {
-        m_currentMode = CADMode::MODE_DRAW;
-        m_bLineCommandActive = true;
+        ActivateCommand(CADCommandType::LINE);
+    } else if (normalized == _T("C") || normalized == _T("CIRCLE")) {
+        ActivateCommand(CADCommandType::CIRCLE);
     } else if (normalized == _T("ESC") || normalized == _T("CANCEL")) {
-        CancelCurrentDrawing();
+        CancelActiveCommand();
     } else if (normalized == _T("U") || normalized == _T("UNDO")) {
         m_shapeMgr.Undo();
         RefreshCanvas();
@@ -295,7 +411,7 @@ void CCADDlg::ProcessCommandLine(const CString& cmd) {
         OnBnClickedOpen();
     } else if (normalized == _T("SAVE") || normalized == _T("QSAVE")) {
         OnBnClickedSave();
-    } else if (normalized == _T("SAVEAS") || normalized == _T("SAVE AS")) {
+    } else if (normalized == _T("SAVEAS")) {
         OnBnClickedSaveAs();
     } else if (normalized == _T("SELECT") || normalized == _T("SEL")) {
         OnBnClickedSel();
@@ -305,7 +421,7 @@ void CCADDlg::ProcessCommandLine(const CString& cmd) {
         OnBnClickedZoomin();
     } else if (normalized == _T("ZO") || normalized == _T("ZOOMOUT")) {
         OnBnClickedZoomout();
-    } else if (normalized == _T("ZE") || normalized == _T("ZOOMEXTENTS") || normalized == _T("ZOOM E")) {
+    } else if (normalized == _T("ZE") || normalized == _T("ZOOMEXTENTS")) {
         OnBnClickedZoomdef();
     } else if (normalized == _T("PAN") || normalized == _T("P")) {
         // 平移命令进入后用中键拖动/按钮平移
@@ -315,6 +431,10 @@ void CCADDlg::ProcessCommandLine(const CString& cmd) {
         OnBnClickedViewPoint();
     } else if (normalized == _T("POINTOFF") || normalized == _T("HIDEPOINT") || normalized == _T("HIDEPOINTS")) {
         OnBnClickedHidePoint();
+    } else if (normalized == _T("CTRLZ")) {
+        OnBnClickedUndo();
+    } else if (normalized == _T("CTRLY")) {
+        OnBnClickedRedo();
     }
 
     FocusCommandLine();
@@ -339,7 +459,7 @@ BOOL CCADDlg::PreTranslateMessage(MSG* pMsg) {
         }
 
         if (pMsg->wParam == VK_ESCAPE) {
-            CancelCurrentDrawing();
+            CancelActiveCommand();
             return TRUE;
         }
 
@@ -366,9 +486,7 @@ BOOL CCADDlg::PreTranslateMessage(MSG* pMsg) {
 }
 
 void CCADDlg::OnBnClickedDraw() {
-    m_currentMode = CADMode::MODE_DRAW;
-    m_bLineCommandActive = true;
-    FocusCommandLine();
+    ActivateCommand(CADCommandType::LINE);
 }
 
 void CCADDlg::OnBnClickedSel() {
