@@ -31,6 +31,9 @@
 #define IDC_MR                          1022
 #define IDC_UNDO                        1023
 #define IDC_REDO                        1024
+#define IDC_DRAW_CIRCLE                 1025
+#define IDC_DRAW_RECT                   1026
+#define IDC_DRAW_ARC                    1027
 
 // Next default values for new objects
 // 

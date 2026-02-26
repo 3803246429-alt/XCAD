@@ -13,6 +13,22 @@
 #define new DEBUG_NEW
 #endif
 
+namespace {
+double NormalizeAngle(double angle) {
+    const double twoPi = 6.28318530717958647692;
+    while (angle < 0.0) angle += twoPi;
+    while (angle >= twoPi) angle -= twoPi;
+    return angle;
+}
+
+double AngleDistanceCCW(double from, double to) {
+    double f = NormalizeAngle(from);
+    double t = NormalizeAngle(to);
+    if (t >= f) return t - f;
+    return (6.28318530717958647692 - f) + t;
+}
+}
+
 BEGIN_MESSAGE_MAP(CCADDlg, CDialogEx)
     ON_WM_PAINT()
     ON_WM_SIZE()
@@ -26,6 +42,9 @@ BEGIN_MESSAGE_MAP(CCADDlg, CDialogEx)
     ON_WM_MOUSEWHEEL()
     ON_BN_CLICKED(IDC_DRAW, &CCADDlg::OnBnClickedDraw)
     ON_BN_CLICKED(IDC_DRAW_LINE, &CCADDlg::OnBnClickedDraw)
+    ON_BN_CLICKED(IDC_DRAW_CIRCLE, &CCADDlg::OnBnClickedCircle)
+    ON_BN_CLICKED(IDC_DRAW_RECT, &CCADDlg::OnBnClickedRectangle)
+    ON_BN_CLICKED(IDC_DRAW_ARC, &CCADDlg::OnBnClickedArc)
     ON_BN_CLICKED(IDC_SEL, &CCADDlg::OnBnClickedSel)
     ON_BN_CLICKED(IDC_SELECT, &CCADDlg::OnBnClickedSel)
     ON_BN_CLICKED(IDC_VIEW_POINT, &CCADDlg::OnBnClickedViewPoint)
@@ -54,8 +73,17 @@ CCADDlg::CCADDlg(CWnd* pParent)
     , m_bLineCommandActive(false)
     , m_bCircleCommandActive(false)
     , m_bCircleCenterPicked(false)
+    , m_bRectangleCommandActive(false)
+    , m_bRectangleFirstPicked(false)
+    , m_bArcCommandActive(false)
+    , m_arcPointCount(0)
     , m_circleCenter(0.0, 0.0)
-    , m_circlePreviewPoint(0.0, 0.0) {
+    , m_circlePreviewPoint(0.0, 0.0)
+    , m_rectFirstPoint(0.0, 0.0)
+    , m_rectPreviewPoint(0.0, 0.0)
+    , m_arcStartPoint(0.0, 0.0)
+    , m_arcSecondPoint(0.0, 0.0)
+    , m_arcPreviewPoint(0.0, 0.0) {
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
@@ -109,6 +137,10 @@ void CCADDlg::ActivateCommand(CADCommandType commandType) {
     m_bLineCommandActive = false;
     m_bCircleCommandActive = false;
     m_bCircleCenterPicked = false;
+    m_bRectangleCommandActive = false;
+    m_bRectangleFirstPicked = false;
+    m_bArcCommandActive = false;
+    m_arcPointCount = 0;
     m_pCurrentLine.reset();
     m_bIsDrawing = false;
 
@@ -118,6 +150,12 @@ void CCADDlg::ActivateCommand(CADCommandType commandType) {
     } else if (commandType == CADCommandType::CIRCLE) {
         m_currentMode = CADMode::MODE_DRAW;
         m_bCircleCommandActive = true;
+    } else if (commandType == CADCommandType::RECTANGLE) {
+        m_currentMode = CADMode::MODE_DRAW;
+        m_bRectangleCommandActive = true;
+    } else if (commandType == CADCommandType::ARC) {
+        m_currentMode = CADMode::MODE_DRAW;
+        m_bArcCommandActive = true;
     }
 
     FocusCommandLine();
@@ -135,6 +173,73 @@ std::shared_ptr<CLine> CCADDlg::CreateCirclePolyline(const Point2D& center, doub
     }
 
     return circle;
+}
+
+std::shared_ptr<CLine> CCADDlg::CreateRectanglePolyline(const Point2D& first, const Point2D& second) const {
+    std::shared_ptr<CLine> rect = std::make_shared<CLine>();
+    Point2D p1(first.x, first.y);
+    Point2D p2(second.x, first.y);
+    Point2D p3(second.x, second.y);
+    Point2D p4(first.x, second.y);
+
+    rect->AddPoint(p1);
+    rect->AddPoint(p2);
+    rect->AddPoint(p3);
+    rect->AddPoint(p4);
+    rect->AddPoint(p1);
+    return rect;
+}
+
+std::shared_ptr<CLine> CCADDlg::CreateArcPolylineByThreePoints(const Point2D& start, const Point2D& through, const Point2D& end, int segments) const {
+    std::shared_ptr<CLine> arc = std::make_shared<CLine>();
+
+    const double d = 2.0 * (start.x * (through.y - end.y) + through.x * (end.y - start.y) + end.x * (start.y - through.y));
+    if (std::fabs(d) < 1e-9) {
+        arc->AddPoint(start);
+        arc->AddPoint(through);
+        arc->AddPoint(end);
+        return arc;
+    }
+
+    const double s2 = start.x * start.x + start.y * start.y;
+    const double t2 = through.x * through.x + through.y * through.y;
+    const double e2 = end.x * end.x + end.y * end.y;
+
+    const double cx = (s2 * (through.y - end.y) + t2 * (end.y - start.y) + e2 * (start.y - through.y)) / d;
+    const double cy = (s2 * (end.x - through.x) + t2 * (start.x - end.x) + e2 * (through.x - start.x)) / d;
+    const Point2D center(cx, cy);
+
+    const double rdx = start.x - center.x;
+    const double rdy = start.y - center.y;
+    const double radius = std::sqrt(rdx * rdx + rdy * rdy);
+    if (radius < 1e-9) {
+        arc->AddPoint(start);
+        arc->AddPoint(end);
+        return arc;
+    }
+
+    double aStart = std::atan2(start.y - center.y, start.x - center.x);
+    double aThrough = std::atan2(through.y - center.y, through.x - center.x);
+    double aEnd = std::atan2(end.y - center.y, end.x - center.x);
+
+    double spanCCW = AngleDistanceCCW(aStart, aEnd);
+    double throughCCW = AngleDistanceCCW(aStart, aThrough);
+    bool ccw = throughCCW <= spanCCW;
+
+    if (segments < 8) segments = 8;
+    for (int i = 0; i <= segments; ++i) {
+        double t = static_cast<double>(i) / static_cast<double>(segments);
+        double angle;
+        if (ccw) {
+            angle = aStart + spanCCW * t;
+        } else {
+            double spanCW = 6.28318530717958647692 - spanCCW;
+            angle = aStart - spanCW * t;
+        }
+        arc->AddPoint(Point2D(center.x + radius * std::cos(angle), center.y + radius * std::sin(angle)));
+    }
+
+    return arc;
 }
 
 void CCADDlg::OnPaint() {
@@ -177,6 +282,52 @@ void CCADDlg::OnPaint() {
         if (r < 0) r = -r;
         if (r > 0) {
             memDC.Ellipse(centerPt.x - r, centerPt.y - r, centerPt.x + r, centerPt.y + r);
+        }
+
+        memDC.SetBkMode(oldBkMode);
+        memDC.SelectObject(oldPen);
+    }
+
+    if (m_bRectangleCommandActive && m_bRectangleFirstPicked) {
+        CPoint p1 = m_transform.WorldToScreen(m_rectFirstPoint);
+        CPoint p3 = m_transform.WorldToScreen(m_rectPreviewPoint);
+        CPoint p2(p3.x, p1.y);
+        CPoint p4(p1.x, p3.y);
+
+        CPen dashPen(PS_DASH, 1, RGB(200, 200, 200));
+        CPen* oldPen = memDC.SelectObject(&dashPen);
+        int oldBkMode = memDC.SetBkMode(TRANSPARENT);
+
+        memDC.MoveTo(p1);
+        memDC.LineTo(p2);
+        memDC.LineTo(p3);
+        memDC.LineTo(p4);
+        memDC.LineTo(p1);
+
+        memDC.SetBkMode(oldBkMode);
+        memDC.SelectObject(oldPen);
+    }
+
+    if (m_bArcCommandActive && m_arcPointCount > 0) {
+        CPen dashPen(PS_DASH, 1, RGB(200, 200, 200));
+        CPen* oldPen = memDC.SelectObject(&dashPen);
+        int oldBkMode = memDC.SetBkMode(TRANSPARENT);
+
+        if (m_arcPointCount == 1) {
+            CPoint ps = m_transform.WorldToScreen(m_arcStartPoint);
+            CPoint pp = m_transform.WorldToScreen(m_arcPreviewPoint);
+            memDC.MoveTo(ps);
+            memDC.LineTo(pp);
+        } else if (m_arcPointCount == 2) {
+            std::shared_ptr<CLine> previewArc = CreateArcPolylineByThreePoints(m_arcStartPoint, m_arcSecondPoint, m_arcPreviewPoint, 72);
+            const auto& pts = previewArc->GetPoints();
+            if (!pts.empty()) {
+                CPoint startPt = m_transform.WorldToScreen(pts[0]);
+                memDC.MoveTo(startPt);
+                for (size_t i = 1; i < pts.size(); ++i) {
+                    memDC.LineTo(m_transform.WorldToScreen(pts[i]));
+                }
+            }
         }
 
         memDC.SetBkMode(oldBkMode);
@@ -236,6 +387,35 @@ void CCADDlg::OnLButtonDown(UINT nFlags, CPoint point) {
             m_bCircleCommandActive = false;
         }
         RefreshCanvas();
+    } else if (m_currentMode == CADMode::MODE_DRAW && m_bRectangleCommandActive) {
+        if (!m_bRectangleFirstPicked) {
+            m_bRectangleFirstPicked = true;
+            m_rectFirstPoint = worldPt;
+            m_rectPreviewPoint = worldPt;
+        } else {
+            m_shapeMgr.ExecuteCommand(std::make_unique<CAddLineCommand>(&m_shapeMgr, CreateRectanglePolyline(m_rectFirstPoint, worldPt)));
+            m_bRectangleFirstPicked = false;
+            m_bRectangleCommandActive = false;
+        }
+        RefreshCanvas();
+    } else if (m_currentMode == CADMode::MODE_DRAW && m_bArcCommandActive) {
+        if (m_arcPointCount == 0) {
+            m_arcStartPoint = worldPt;
+            m_arcPreviewPoint = worldPt;
+            m_arcPointCount = 1;
+        } else if (m_arcPointCount == 1) {
+            m_arcSecondPoint = worldPt;
+            m_arcPreviewPoint = worldPt;
+            m_arcPointCount = 2;
+        } else {
+            std::shared_ptr<CLine> arc = CreateArcPolylineByThreePoints(m_arcStartPoint, m_arcSecondPoint, worldPt, 120);
+            if (arc->GetPoints().size() >= 2) {
+                m_shapeMgr.ExecuteCommand(std::make_unique<CAddLineCommand>(&m_shapeMgr, arc));
+            }
+            m_arcPointCount = 0;
+            m_bArcCommandActive = false;
+        }
+        RefreshCanvas();
     }
 
     FocusCommandLine();
@@ -267,6 +447,22 @@ void CCADDlg::OnMouseMove(UINT nFlags, CPoint point) {
         CPoint localPt(point.x - rect.left, point.y - rect.top);
         m_circlePreviewPoint = m_transform.ScreenToWorld(localPt);
         RefreshCanvas();
+        return;
+    }
+
+    if (m_bRectangleCommandActive && m_bRectangleFirstPicked) {
+        CRect rect = m_transform.GetScreenRect();
+        CPoint localPt(point.x - rect.left, point.y - rect.top);
+        m_rectPreviewPoint = m_transform.ScreenToWorld(localPt);
+        RefreshCanvas();
+        return;
+    }
+
+    if (m_bArcCommandActive && m_arcPointCount > 0) {
+        CRect rect = m_transform.GetScreenRect();
+        CPoint localPt(point.x - rect.left, point.y - rect.top);
+        m_arcPreviewPoint = m_transform.ScreenToWorld(localPt);
+        RefreshCanvas();
     }
 }
 
@@ -290,6 +486,10 @@ void CCADDlg::FinishCurrentDrawing(bool keepCommandActive) {
     m_bLineCommandActive = keepCommandActive;
     m_bCircleCommandActive = false;
     m_bCircleCenterPicked = false;
+    m_bRectangleCommandActive = false;
+    m_bRectangleFirstPicked = false;
+    m_bArcCommandActive = false;
+    m_arcPointCount = 0;
     RefreshCanvas();
     FocusCommandLine();
 }
@@ -340,6 +540,10 @@ void CCADDlg::CancelCurrentDrawing() {
     m_bLineCommandActive = false;
     m_bCircleCommandActive = false;
     m_bCircleCenterPicked = false;
+    m_bRectangleCommandActive = false;
+    m_bRectangleFirstPicked = false;
+    m_bArcCommandActive = false;
+    m_arcPointCount = 0;
     m_pCurrentLine.reset();
     RefreshCanvas();
     FocusCommandLine();
@@ -359,6 +563,10 @@ void CCADDlg::CancelActiveCommand() {
     m_bLineCommandActive = false;
     m_bCircleCommandActive = false;
     m_bCircleCenterPicked = false;
+    m_bRectangleCommandActive = false;
+    m_bRectangleFirstPicked = false;
+    m_bArcCommandActive = false;
+    m_arcPointCount = 0;
 
     RefreshCanvas();
     FocusCommandLine();
@@ -397,6 +605,10 @@ void CCADDlg::ProcessCommandLine(const CString& cmd) {
         ActivateCommand(CADCommandType::LINE);
     } else if (normalized == _T("C") || normalized == _T("CIRCLE")) {
         ActivateCommand(CADCommandType::CIRCLE);
+    } else if (normalized == _T("REC") || normalized == _T("RECT") || normalized == _T("RECTANGLE") || normalized == _T("RECTANG")) {
+        ActivateCommand(CADCommandType::RECTANGLE);
+    } else if (normalized == _T("A") || normalized == _T("ARC")) {
+        ActivateCommand(CADCommandType::ARC);
     } else if (normalized == _T("ESC") || normalized == _T("CANCEL")) {
         CancelActiveCommand();
     } else if (normalized == _T("U") || normalized == _T("UNDO")) {
@@ -487,6 +699,18 @@ BOOL CCADDlg::PreTranslateMessage(MSG* pMsg) {
 
 void CCADDlg::OnBnClickedDraw() {
     ActivateCommand(CADCommandType::LINE);
+}
+
+void CCADDlg::OnBnClickedCircle() {
+    ActivateCommand(CADCommandType::CIRCLE);
+}
+
+void CCADDlg::OnBnClickedRectangle() {
+    ActivateCommand(CADCommandType::RECTANGLE);
+}
+
+void CCADDlg::OnBnClickedArc() {
+    ActivateCommand(CADCommandType::ARC);
 }
 
 void CCADDlg::OnBnClickedSel() {

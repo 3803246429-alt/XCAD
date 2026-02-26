@@ -16,7 +16,9 @@ enum class CADMode {
 enum class CADCommandType {
     NONE,
     LINE,
-    CIRCLE
+    CIRCLE,
+    RECTANGLE,
+    ARC
 };
 
 
@@ -43,9 +45,18 @@ protected:
     bool m_bLineCommandActive;
     bool m_bCircleCommandActive;
     bool m_bCircleCenterPicked;
+    bool m_bRectangleCommandActive;
+    bool m_bRectangleFirstPicked;
+    bool m_bArcCommandActive;
+    int m_arcPointCount;
     CPoint m_lastMousePt;
     Point2D m_circleCenter;
     Point2D m_circlePreviewPoint;
+    Point2D m_rectFirstPoint;
+    Point2D m_rectPreviewPoint;
+    Point2D m_arcStartPoint;
+    Point2D m_arcSecondPoint;
+    Point2D m_arcPreviewPoint;
 
     std::shared_ptr<CLine> m_pCurrentLine;
     CShapeManager m_shapeMgr;
@@ -65,6 +76,9 @@ protected:
 	afx_msg void OnMButtonUp(UINT nFlags, CPoint point);
 	afx_msg BOOL OnMouseWheel(UINT nFlags, short zDelta, CPoint pt);
 	afx_msg void OnBnClickedDraw();
+	afx_msg void OnBnClickedCircle();
+	afx_msg void OnBnClickedRectangle();
+	afx_msg void OnBnClickedArc();
 	afx_msg void OnBnClickedSel();
 	afx_msg void OnBnClickedViewPoint();
 	afx_msg void OnBnClickedHidePoint();
@@ -92,6 +106,8 @@ protected:
 	bool SaveAsWithDialog();
 	void ActivateCommand(CADCommandType commandType);
 	std::shared_ptr<CLine> CreateCirclePolyline(const Point2D& center, double radius, int segments) const;
+	std::shared_ptr<CLine> CreateRectanglePolyline(const Point2D& first, const Point2D& second) const;
+	std::shared_ptr<CLine> CreateArcPolylineByThreePoints(const Point2D& start, const Point2D& through, const Point2D& end, int segments) const;
 
 	DECLARE_MESSAGE_MAP()
 };
