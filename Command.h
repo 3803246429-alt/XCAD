@@ -1,6 +1,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 class CShapeManager;
 class CLine;
@@ -19,6 +20,18 @@ private:
 
 public:
     CAddLineCommand(CShapeManager* mgr, std::shared_ptr<CLine> line);
+
+    void Execute() override;
+    void Undo() override;
+};
+
+class CDeleteLinesCommand : public ICadCommand {
+private:
+    CShapeManager* m_pManager;
+    std::vector<std::shared_ptr<CLine>> m_lines;
+
+public:
+    CDeleteLinesCommand(CShapeManager* mgr, std::vector<std::shared_ptr<CLine>> lines);
 
     void Execute() override;
     void Undo() override;

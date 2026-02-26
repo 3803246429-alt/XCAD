@@ -18,6 +18,8 @@ public:
     void AddShape(std::shared_ptr<CLine> shape);
     void RemoveShape(std::shared_ptr<CLine> shape);
     void Clear();
+    std::vector<std::shared_ptr<CLine>>& GetShapes();
+    const std::vector<std::shared_ptr<CLine>>& GetShapes() const;
 
     void DrawAll(CDC* pDC, const CViewTransform& transform, bool bShowPoints) const;
 

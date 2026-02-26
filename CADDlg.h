@@ -18,7 +18,8 @@ enum class CADCommandType {
     LINE,
     CIRCLE,
     RECTANGLE,
-    ARC
+    ARC,
+    ERASER
 };
 
 
@@ -48,8 +49,16 @@ protected:
     bool m_bRectangleCommandActive;
     bool m_bRectangleFirstPicked;
     bool m_bArcCommandActive;
+    bool m_bEraserCommandActive;
+    bool m_bIsSelectingBox;
+    bool m_bIsErasing;
+    bool m_bEraserCursorVisible;
     int m_arcPointCount;
+    int m_eraserRadius;
     CPoint m_lastMousePt;
+    CPoint m_selectBoxStart;
+    CPoint m_selectBoxEnd;
+    CPoint m_eraserCursor;
     Point2D m_circleCenter;
     Point2D m_circlePreviewPoint;
     Point2D m_rectFirstPoint;
@@ -97,6 +106,7 @@ protected:
 	afx_msg void OnBnClickedUndo();
 	afx_msg void OnBnClickedRedo();
 	afx_msg void OnBnClickedAboutIcon();
+	afx_msg void OnBnClickedDelLine();
 
 	void ProcessCommandLine(const CString& cmd);
 	void CancelCurrentDrawing();
@@ -110,6 +120,10 @@ protected:
 	std::shared_ptr<CLine> CreateCirclePolyline(const Point2D& center, double radius, int segments) const;
 	std::shared_ptr<CLine> CreateRectanglePolyline(const Point2D& first, const Point2D& second) const;
 	std::shared_ptr<CLine> CreateArcPolylineByThreePoints(const Point2D& start, const Point2D& through, const Point2D& end, int segments) const;
+	void ClearSelection();
+	void ApplySelectionBox();
+	void DeleteSelectedLines();
+	void EraseAtPoint(const CPoint& localPt);
 
 	DECLARE_MESSAGE_MAP()
 };

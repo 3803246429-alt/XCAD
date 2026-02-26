@@ -35,6 +35,14 @@ void CShapeManager::Clear() {
     while (!m_redoStack.empty()) m_redoStack.pop();
 }
 
+std::vector<std::shared_ptr<CLine>>& CShapeManager::GetShapes() {
+    return m_shapes;
+}
+
+const std::vector<std::shared_ptr<CLine>>& CShapeManager::GetShapes() const {
+    return m_shapes;
+}
+
 void CShapeManager::DrawAll(CDC* pDC, const CViewTransform& transform, bool bShowPoints) const {
     for (const auto& shape : m_shapes) {
         shape->Draw(pDC, transform, bShowPoints);

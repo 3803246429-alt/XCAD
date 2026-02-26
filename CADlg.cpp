@@ -5,6 +5,7 @@
 #include "afxdialogex.h"
 
 #include <afxdlgs.h>
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <vector>
@@ -26,6 +27,119 @@ double AngleDistanceCCW(double from, double to) {
     double t = NormalizeAngle(to);
     if (t >= f) return t - f;
     return (6.28318530717958647692 - f) + t;
+}
+
+CRect NormalizeRect(const CPoint& a, const CPoint& b) {
+    CRect rect(a, b);
+    rect.NormalizeRect();
+    return rect;
+}
+
+bool IsPointInRect(const CPoint& pt, const CRect& rect) {
+    return pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom;
+}
+
+bool SegmentsIntersect(const CPoint& p1, const CPoint& p2, const CPoint& q1, const CPoint& q2) {
+    auto cross = [](const CPoint& a, const CPoint& b, const CPoint& c) {
+        return static_cast<double>(b.x - a.x) * static_cast<double>(c.y - a.y)
+            - static_cast<double>(b.y - a.y) * static_cast<double>(c.x - a.x);
+    };
+    auto onSegment = [](const CPoint& a, const CPoint& b, const CPoint& c) {
+        return (std::min)(a.x, b.x) <= c.x && c.x <= (std::max)(a.x, b.x)
+            && (std::min)(a.y, b.y) <= c.y && c.y <= (std::max)(a.y, b.y);
+    };
+
+    double d1 = cross(p1, p2, q1);
+    double d2 = cross(p1, p2, q2);
+    double d3 = cross(q1, q2, p1);
+    double d4 = cross(q1, q2, p2);
+
+    if (((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0)) && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0))) {
+        return true;
+    }
+
+    const double eps = 1e-9;
+    if (std::fabs(d1) <= eps && onSegment(p1, p2, q1)) return true;
+    if (std::fabs(d2) <= eps && onSegment(p1, p2, q2)) return true;
+    if (std::fabs(d3) <= eps && onSegment(q1, q2, p1)) return true;
+    if (std::fabs(d4) <= eps && onSegment(q1, q2, p2)) return true;
+    return false;
+}
+
+bool PolylineIntersectsRect(const CLine& line, const CRect& rect, const CViewTransform& transform) {
+    const auto& pts = line.GetPoints();
+    if (pts.empty()) return false;
+
+    std::vector<CPoint> screenPts;
+    screenPts.reserve(pts.size());
+    for (const auto& p : pts) {
+        screenPts.push_back(transform.WorldToScreen(p));
+    }
+
+    for (const auto& p : screenPts) {
+        if (IsPointInRect(p, rect)) return true;
+    }
+
+    CPoint r1(rect.left, rect.top);
+    CPoint r2(rect.right, rect.top);
+    CPoint r3(rect.right, rect.bottom);
+    CPoint r4(rect.left, rect.bottom);
+
+    for (size_t i = 1; i < screenPts.size(); ++i) {
+        const CPoint& a = screenPts[i - 1];
+        const CPoint& b = screenPts[i];
+        if (SegmentsIntersect(a, b, r1, r2) || SegmentsIntersect(a, b, r2, r3) ||
+            SegmentsIntersect(a, b, r3, r4) || SegmentsIntersect(a, b, r4, r1)) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+double DistancePointToSegmentSquared(const CPoint& p, const CPoint& a, const CPoint& b) {
+    const double dx = static_cast<double>(b.x - a.x);
+    const double dy = static_cast<double>(b.y - a.y);
+    const double len2 = dx * dx + dy * dy;
+    if (len2 < 1e-9) {
+        const double px = static_cast<double>(p.x - a.x);
+        const double py = static_cast<double>(p.y - a.y);
+        return px * px + py * py;
+    }
+
+    double t = (static_cast<double>(p.x - a.x) * dx + static_cast<double>(p.y - a.y) * dy) / len2;
+    t = (std::max)(0.0, (std::min)(1.0, t));
+    const double projX = static_cast<double>(a.x) + t * dx;
+    const double projY = static_cast<double>(a.y) + t * dy;
+    const double ddx = static_cast<double>(p.x) - projX;
+    const double ddy = static_cast<double>(p.y) - projY;
+    return ddx * ddx + ddy * ddy;
+}
+
+bool PolylineIntersectsCircle(const CLine& line, const CPoint& center, int radius, const CViewTransform& transform) {
+    const auto& pts = line.GetPoints();
+    if (pts.empty()) return false;
+
+    const double r2 = static_cast<double>(radius) * static_cast<double>(radius);
+    std::vector<CPoint> screenPts;
+    screenPts.reserve(pts.size());
+    for (const auto& p : pts) {
+        screenPts.push_back(transform.WorldToScreen(p));
+    }
+
+    for (const auto& p : screenPts) {
+        const double dx = static_cast<double>(p.x - center.x);
+        const double dy = static_cast<double>(p.y - center.y);
+        if (dx * dx + dy * dy <= r2) return true;
+    }
+
+    for (size_t i = 1; i < screenPts.size(); ++i) {
+        if (DistancePointToSegmentSquared(center, screenPts[i - 1], screenPts[i]) <= r2) {
+            return true;
+        }
+    }
+
+    return false;
 }
 }
 
@@ -63,6 +177,7 @@ BEGIN_MESSAGE_MAP(CCADDlg, CDialogEx)
     ON_BN_CLICKED(IDC_SAVE_AS, &CCADDlg::OnBnClickedSaveAs)
     ON_BN_CLICKED(IDC_UNDO, &CCADDlg::OnBnClickedUndo)
     ON_BN_CLICKED(IDC_REDO, &CCADDlg::OnBnClickedRedo)
+    ON_BN_CLICKED(IDC_DEL_LINE, &CCADDlg::OnBnClickedDelLine)
     ON_BN_CLICKED(IDC_ABOUT_ICON, &CCADDlg::OnBnClickedAboutIcon)
 END_MESSAGE_MAP()
 
@@ -78,7 +193,15 @@ CCADDlg::CCADDlg(CWnd* pParent)
     , m_bRectangleCommandActive(false)
     , m_bRectangleFirstPicked(false)
     , m_bArcCommandActive(false)
+    , m_bEraserCommandActive(false)
+    , m_bIsSelectingBox(false)
+    , m_bIsErasing(false)
+    , m_bEraserCursorVisible(false)
     , m_arcPointCount(0)
+    , m_eraserRadius(18)
+    , m_selectBoxStart(0, 0)
+    , m_selectBoxEnd(0, 0)
+    , m_eraserCursor(0, 0)
     , m_circleCenter(0.0, 0.0)
     , m_circlePreviewPoint(0.0, 0.0)
     , m_rectFirstPoint(0.0, 0.0)
@@ -181,12 +304,17 @@ void CCADDlg::RefreshCanvas() {
 }
 
 void CCADDlg::ActivateCommand(CADCommandType commandType) {
+    ClearSelection();
     m_bLineCommandActive = false;
     m_bCircleCommandActive = false;
     m_bCircleCenterPicked = false;
     m_bRectangleCommandActive = false;
     m_bRectangleFirstPicked = false;
     m_bArcCommandActive = false;
+    m_bEraserCommandActive = false;
+    m_bIsSelectingBox = false;
+    m_bIsErasing = false;
+    m_bEraserCursorVisible = false;
     m_arcPointCount = 0;
     m_pCurrentLine.reset();
     m_bIsDrawing = false;
@@ -203,8 +331,12 @@ void CCADDlg::ActivateCommand(CADCommandType commandType) {
     } else if (commandType == CADCommandType::ARC) {
         m_currentMode = CADMode::MODE_DRAW;
         m_bArcCommandActive = true;
+    } else if (commandType == CADCommandType::ERASER) {
+        m_currentMode = CADMode::MODE_SELECT;
+        m_bEraserCommandActive = true;
     }
 
+    RefreshCanvas();
     FocusCommandLine();
 }
 
@@ -381,6 +513,26 @@ void CCADDlg::OnPaint() {
         memDC.SelectObject(oldPen);
     }
 
+    if (m_currentMode == CADMode::MODE_SELECT && m_bIsSelectingBox) {
+        CRect box = NormalizeRect(m_selectBoxStart, m_selectBoxEnd);
+        CPen dashPen(PS_DASH, 1, RGB(255, 255, 255));
+        CPen* oldPen = memDC.SelectObject(&dashPen);
+        int oldBkMode = memDC.SetBkMode(TRANSPARENT);
+        memDC.Rectangle(&box);
+        memDC.SetBkMode(oldBkMode);
+        memDC.SelectObject(oldPen);
+    }
+
+    if (m_bEraserCommandActive && m_bEraserCursorVisible) {
+        CPen pen(PS_SOLID, 1, RGB(255, 255, 255));
+        CPen* oldPen = memDC.SelectObject(&pen);
+        CBrush* oldBrush = static_cast<CBrush*>(memDC.SelectStockObject(NULL_BRUSH));
+        memDC.Ellipse(m_eraserCursor.x - m_eraserRadius, m_eraserCursor.y - m_eraserRadius,
+            m_eraserCursor.x + m_eraserRadius, m_eraserCursor.y + m_eraserRadius);
+        memDC.SelectObject(oldBrush);
+        memDC.SelectObject(oldPen);
+    }
+
     dc.BitBlt(rect.left, rect.top, rect.Width(), rect.Height(), &memDC, 0, 0, SRCCOPY);
     memDC.SelectObject(pOldBmp);
 }
@@ -463,14 +615,26 @@ void CCADDlg::OnLButtonDown(UINT nFlags, CPoint point) {
             m_bArcCommandActive = false;
         }
         RefreshCanvas();
+    } else if (m_currentMode == CADMode::MODE_SELECT) {
+        ClearSelection();
+        if (m_bEraserCommandActive) {
+            m_bIsErasing = true;
+            m_eraserCursor = localPt;
+            m_bEraserCursorVisible = true;
+            EraseAtPoint(localPt);
+        } else {
+            m_bIsSelectingBox = true;
+            m_selectBoxStart = localPt;
+            m_selectBoxEnd = localPt;
+        }
+        SetCapture();
+        RefreshCanvas();
     }
 
     FocusCommandLine();
 }
 
 void CCADDlg::OnMouseMove(UINT nFlags, CPoint point) {
-    UNREFERENCED_PARAMETER(nFlags);
-
     if (m_bIsPanning) {
         m_transform.Pan(point.x - m_lastMousePt.x, point.y - m_lastMousePt.y);
         m_lastMousePt = point;
@@ -510,12 +674,106 @@ void CCADDlg::OnMouseMove(UINT nFlags, CPoint point) {
         CPoint localPt(point.x - rect.left, point.y - rect.top);
         m_arcPreviewPoint = m_transform.ScreenToWorld(localPt);
         RefreshCanvas();
+        return;
+    }
+
+    CRect rect = m_transform.GetScreenRect();
+    bool inCanvas = rect.PtInRect(point);
+    CPoint localPt(point.x - rect.left, point.y - rect.top);
+
+    if (m_bEraserCommandActive) {
+        m_bEraserCursorVisible = inCanvas;
+        if (inCanvas) {
+            m_eraserCursor = localPt;
+            if (m_bIsErasing && (nFlags & MK_LBUTTON)) {
+                EraseAtPoint(localPt);
+            }
+        }
+        RefreshCanvas();
+        return;
+    }
+
+    if (m_currentMode == CADMode::MODE_SELECT && m_bIsSelectingBox) {
+        m_selectBoxEnd = localPt;
+        RefreshCanvas();
     }
 }
 
 void CCADDlg::OnLButtonUp(UINT nFlags, CPoint point) {
+    CRect rect = m_transform.GetScreenRect();
+    CPoint localPt(point.x - rect.left, point.y - rect.top);
+
+    if (m_currentMode == CADMode::MODE_SELECT && m_bIsSelectingBox) {
+        m_selectBoxEnd = localPt;
+        ApplySelectionBox();
+        m_bIsSelectingBox = false;
+        if (GetCapture() == this) {
+            ReleaseCapture();
+        }
+        RefreshCanvas();
+    }
+
+    if (m_bEraserCommandActive && m_bIsErasing) {
+        m_bIsErasing = false;
+        if (GetCapture() == this) {
+            ReleaseCapture();
+        }
+    }
+
     CDialogEx::OnLButtonUp(nFlags, point);
     FocusCommandLine();
+}
+
+void CCADDlg::ClearSelection() {
+    for (auto& shape : m_shapeMgr.GetShapes()) {
+        shape->SetSelected(false);
+    }
+}
+
+void CCADDlg::ApplySelectionBox() {
+    if (m_currentMode != CADMode::MODE_SELECT || m_bEraserCommandActive) return;
+
+    CRect box = NormalizeRect(m_selectBoxStart, m_selectBoxEnd);
+    if (box.Width() < 2 && box.Height() < 2) {
+        ClearSelection();
+        return;
+    }
+
+    ClearSelection();
+    for (auto& shape : m_shapeMgr.GetShapes()) {
+        if (PolylineIntersectsRect(*shape, box, m_transform)) {
+            shape->SetSelected(true);
+        }
+    }
+}
+
+void CCADDlg::DeleteSelectedLines() {
+    std::vector<std::shared_ptr<CLine>> selected;
+    for (const auto& shape : m_shapeMgr.GetShapes()) {
+        if (shape->IsSelected()) {
+            selected.push_back(shape);
+        }
+    }
+
+    if (selected.empty()) return;
+    m_shapeMgr.ExecuteCommand(std::make_unique<CDeleteLinesCommand>(&m_shapeMgr, std::move(selected)));
+    RefreshCanvas();
+}
+
+void CCADDlg::EraseAtPoint(const CPoint& localPt) {
+    if (!m_bEraserCommandActive) return;
+
+    std::vector<std::shared_ptr<CLine>> hits;
+    for (const auto& shape : m_shapeMgr.GetShapes()) {
+        if (PolylineIntersectsCircle(*shape, localPt, m_eraserRadius, m_transform)) {
+            hits.push_back(shape);
+        }
+    }
+
+    if (!hits.empty()) {
+        m_shapeMgr.ExecuteCommand(std::make_unique<CDeleteLinesCommand>(&m_shapeMgr, std::move(hits)));
+        RefreshCanvas();
+    }
 }
 
 void CCADDlg::FinishCurrentDrawing(bool keepCommandActive) {
@@ -590,8 +848,16 @@ void CCADDlg::CancelCurrentDrawing() {
     m_bRectangleCommandActive = false;
     m_bRectangleFirstPicked = false;
     m_bArcCommandActive = false;
+    m_bEraserCommandActive = false;
+    m_bIsSelectingBox = false;
+    m_bIsErasing = false;
+    m_bEraserCursorVisible = false;
     m_arcPointCount = 0;
     m_pCurrentLine.reset();
+    if (GetCapture() == this) {
+        ReleaseCapture();
+    }
+    ClearSelection();
     RefreshCanvas();
     FocusCommandLine();
 }
@@ -613,7 +879,15 @@ void CCADDlg::CancelActiveCommand() {
     m_bRectangleCommandActive = false;
     m_bRectangleFirstPicked = false;
     m_bArcCommandActive = false;
+    m_bEraserCommandActive = false;
+    m_bIsSelectingBox = false;
+    m_bIsErasing = false;
+    m_bEraserCursorVisible = false;
     m_arcPointCount = 0;
+
+    if (GetCapture() == this) {
+        ReleaseCapture();
+    }
 
     RefreshCanvas();
     FocusCommandLine();
@@ -656,6 +930,8 @@ void CCADDlg::ProcessCommandLine(const CString& cmd) {
         ActivateCommand(CADCommandType::RECTANGLE);
     } else if (normalized == _T("A") || normalized == _T("ARC")) {
         ActivateCommand(CADCommandType::ARC);
+    } else if (normalized == _T("E") || normalized == _T("ER") || normalized == _T("ERASE")) {
+        ActivateCommand(CADCommandType::ERASER);
     } else if (normalized == _T("ESC") || normalized == _T("CANCEL")) {
         CancelActiveCommand();
     } else if (normalized == _T("U") || normalized == _T("UNDO")) {
@@ -719,6 +995,13 @@ BOOL CCADDlg::PreTranslateMessage(MSG* pMsg) {
 
         if (pMsg->wParam == VK_ESCAPE) {
             CancelActiveCommand();
+            return TRUE;
+        }
+
+        if ((pMsg->wParam == VK_DELETE || pMsg->wParam == VK_BACK) &&
+            m_currentMode == CADMode::MODE_SELECT && !m_bEraserCommandActive) {
+            DeleteSelectedLines();
+            FocusCommandLine();
             return TRUE;
         }
 
@@ -891,6 +1174,10 @@ void CCADDlg::OnBnClickedRedo() {
     m_shapeMgr.Redo();
     RefreshCanvas();
     FocusCommandLine();
+}
+
+void CCADDlg::OnBnClickedDelLine() {
+    ActivateCommand(CADCommandType::ERASER);
 }
 
 void CCADDlg::OnBnClickedAboutIcon() {
