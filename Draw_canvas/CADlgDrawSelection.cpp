@@ -1,6 +1,6 @@
 #include "pch.h"
-#include "CADDlg.h"
-#include "CADlgGeometryUtils.h"
+#include "../CADDlg.h"
+#include "../CADlgGeometryUtils.h"
 
 void CCADDlg::DrawSelection(CDC* pDC) {
     if (!pDC) return;

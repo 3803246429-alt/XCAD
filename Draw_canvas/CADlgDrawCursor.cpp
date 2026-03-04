@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "CADDlg.h"
+#include "../CADDlg.h"
 
 void CCADDlg::DrawCursor(CDC* pDC) {
     if (!pDC) return;

@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "CADDlg.h"
+#include "../CADDlg.h"
 
 void CCADDlg::DrawModel(CDC* pDC) {
     if (!pDC) return;

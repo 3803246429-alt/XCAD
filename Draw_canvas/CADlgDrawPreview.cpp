@@ -1,5 +1,5 @@
 #include "pch.h"
-#include "CADDlg.h"
+#include "../CADDlg.h"
 
 #include <cmath>
 #include <memory>
