@@ -54,10 +54,10 @@ BEGIN
     "\r\n"
     "#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)\r\n"
     "LANGUAGE 9, 1\r\n"
-    "#include ""res\\CAD.rc2""  // 璺? Microsoft Visual C++ 鍗よ効?-娓?鑴抽敋?閳?\n"
-    "#include ""afxres.rc""      // 鍗ら敋鑴?鑴宠寘?t\r\n"
+    "#include ""res\\CAD.rc2""  // resource add-in / 资源附加\n"
+    "#include ""afxres.rc""      // MFC core resources / MFC核心资源\r\n"
     "#if !defined(_AFXDLL)\r\n"
-    "#include ""afxribbon.rc""   // MFC 1|?鐪??o閾????鐭?鑴抽敋?閳?\n"
+    "#include ""afxribbon.rc""   // MFC ribbon resources / MFC功能区资源\n"
     "#endif\r\n"
     "#endif\r\n"
     "\0"
@@ -267,10 +267,10 @@ END
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE 9, 1
-#include "res\CAD.rc2"  // 璺? Microsoft Visual C++ 鍗よ効?-娓?鑴抽敋?閳?
-#include "afxres.rc"      // 鍗ら敋鑴?鑴宠寘?t
+#include "res\CAD.rc2"  // resource add-in / 资源附加
+#include "afxres.rc"      // MFC core resources / MFC核心资源
 #if !defined(_AFXDLL)
-#include "afxribbon.rc"   // MFC 1|?鐪??o閾????鐭?鑴抽敋?閳?
+#include "afxribbon.rc"   // MFC ribbon resources / MFC功能区资源
 #endif
 #endif
 
