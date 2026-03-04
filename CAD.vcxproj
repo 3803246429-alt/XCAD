@@ -203,6 +203,10 @@
   <ItemGroup>
     <ClCompile Include="CAD.cpp" />
     <ClCompile Include="CADlg.cpp" />
+    <ClCompile Include="CADlgDrawCursor.cpp" />
+    <ClCompile Include="CADlgDrawModel.cpp" />
+    <ClCompile Include="CADlgDrawPreview.cpp" />
+    <ClCompile Include="CADlgDrawSelection.cpp" />
     <ClCompile Include="CADlgGeometryUtils.cpp" />
     <ClCompile Include="CADlgSelection.cpp" />
     <ClCompile Include="CADlgShapeFactory.cpp" />

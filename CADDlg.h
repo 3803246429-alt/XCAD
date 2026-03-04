@@ -124,6 +124,10 @@ protected:
 	void ApplySelectionBox();
 	void DeleteSelectedLines();
 	void EraseAtPoint(const CPoint& localPt);
+	void DrawModel(CDC* pDC);
+	void DrawPreview(CDC* pDC);
+	void DrawSelection(CDC* pDC);
+	void DrawCursor(CDC* pDC);
 	void UpdateModeButtonHighlight();
 
 	DECLARE_MESSAGE_MAP()
