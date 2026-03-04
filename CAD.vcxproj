@@ -204,7 +204,6 @@
     <ClCompile Include="CAD.cpp" />
     <ClCompile Include="CADlg.cpp" />
     <ClCompile Include="CADlgGeometryUtils.cpp" />
-    <ClCompile Include="CADlgRendering.cpp" />
     <ClCompile Include="CADlgSelection.cpp" />
     <ClCompile Include="CADlgShapeFactory.cpp" />
     <ClCompile Include="Commands.cpp" />

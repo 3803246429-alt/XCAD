@@ -115,6 +115,10 @@ BOOL CCADDlg::PreTranslateMessage(MSG* pMsg) {
     BOOL handled = CDialogEx::PreTranslateMessage(pMsg);
 
     if (pMsg->message == WM_LBUTTONDOWN || pMsg->message == WM_RBUTTONDOWN || pMsg->message == WM_MBUTTONDOWN) {
+        TCHAR className[32] = { 0 };
+        if (::GetClassName(pMsg->hwnd, className, _countof(className)) > 0 && _tcsicmp(className, _T("Button")) == 0) {
+            return handled;
+        }
         FocusCommandLine();
     }
 
