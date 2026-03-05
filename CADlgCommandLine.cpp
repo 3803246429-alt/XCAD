@@ -8,6 +8,11 @@
 // - cmd: 原始命令字符串 / raw command text
 // - 自动 trim + upper + 去空格 / normalize command text
 
+namespace {
+const SHORT kKeyDownMask = static_cast<SHORT>(0x8000);
+}
+
+// 功能：解析命令行文本并分发到对应命令处理。
 void CCADDlg::ProcessCommandLine(const CString& cmd) {
     CString normalized = cmd;
     normalized.Trim();
@@ -71,9 +76,14 @@ void CCADDlg::ProcessCommandLine(const CString& cmd) {
     FocusCommandLine();
 }
 
+// 功能：统一处理快捷键与命令行回车提交。
+// 交互步骤（keyboard input）：
+// 1) 先拦截 Ctrl+Z / Ctrl+Y / ESC / Delete。
+// 2) 再处理命令行输入框里的 Enter 提交。
+// 3) 最后回落到基类消息流程，保持 MFC 默认行为。
 BOOL CCADDlg::PreTranslateMessage(MSG* pMsg) {
     if (pMsg->message == WM_KEYDOWN) {
-        const bool ctrlDown = (GetKeyState(VK_CONTROL) & 0x8000) != 0;
+        const bool ctrlDown = (GetKeyState(VK_CONTROL) & kKeyDownMask) != 0;
 
         if (ctrlDown && (pMsg->wParam == 'Z' || pMsg->wParam == 'z')) {
             m_shapeMgr.Undo();

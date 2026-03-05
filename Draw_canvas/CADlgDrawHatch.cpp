@@ -5,16 +5,23 @@
 #include <vector>
 
 namespace {
+const int kMinPolygonPointCount = 3;
+const double kPointEqualEpsilon = 1e-9;
+const COLORREF kHatchBorderColor = RGB(0, 0, 0);
+const int kHatchBorderLineWidth = 1;
+
+// 功能：判断图元是否是闭合形状。
 bool IsClosedShape(const CLine& shape) {
     const auto& pts = shape.GetPoints();
-    if (pts.size() < 3) return false;
+    if (pts.size() < kMinPolygonPointCount) return false;
     const Point2D& a = pts.front();
     const Point2D& b = pts.back();
-    return std::fabs(a.x - b.x) <= 1e-9 && std::fabs(a.y - b.y) <= 1e-9;
+    return std::fabs(a.x - b.x) <= kPointEqualEpsilon && std::fabs(a.y - b.y) <= kPointEqualEpsilon;
 }
 
+// 功能：射线法判断点是否在多边形内部。
 bool PointInPolygon(const std::vector<CPoint>& polygon, const CPoint& p) {
-    if (polygon.size() < 3) return false;
+    if (polygon.size() < kMinPolygonPointCount) return false;
 
     bool inside = false;
     size_t j = polygon.size() - 1;
@@ -37,6 +44,7 @@ bool PointInPolygon(const std::vector<CPoint>& polygon, const CPoint& p) {
     return inside;
 }
 
+// 功能：按绘制顺序从上到下查找命中点所在的闭合图元。
 std::shared_ptr<CLine> FindClosedShapeAtPoint(const CShapeManager& shapeMgr, const CViewTransform& transform, const CPoint& localPt) {
     const auto& shapes = shapeMgr.GetShapes();
     for (auto it = shapes.rbegin(); it != shapes.rend(); ++it) {
@@ -59,6 +67,7 @@ std::shared_ptr<CLine> FindClosedShapeAtPoint(const CShapeManager& shapeMgr, con
 }
 }
 
+// 功能：处理填充工具左键点击，提交填充命令。
 bool CCADDlg::HandleHatchToolLButtonDown(const CPoint& localPt) {
     if (!(m_currentMode == CADMode::MODE_SELECT && m_bHatchCommandActive)) return false;
 
@@ -71,6 +80,7 @@ bool CCADDlg::HandleHatchToolLButtonDown(const CPoint& localPt) {
     return true;
 }
 
+// 功能：处理填充工具鼠标移动，更新填充预览状态。
 bool CCADDlg::HandleHatchToolMouseMove(const CPoint& localPt, bool inCanvas) {
     if (!m_bHatchCommandActive) return false;
 
@@ -83,6 +93,7 @@ bool CCADDlg::HandleHatchToolMouseMove(const CPoint& localPt, bool inCanvas) {
     return true;
 }
 
+// 功能：绘制填充工具预览效果。
 void CCADDlg::DrawHatchPreview(CDC* pDC) {
     if (!pDC || !m_bHatchCommandActive || !m_bHatchPreviewVisible) return;
 
@@ -96,11 +107,11 @@ void CCADDlg::DrawHatchPreview(CDC* pDC) {
         screenPts.push_back(m_transform.WorldToScreen(pt));
     }
 
-    if (screenPts.size() < 3) return;
+    if (screenPts.size() < kMinPolygonPointCount) return;
 
     CBrush hatchBrush(HS_FDIAGONAL, m_hatchColor);
     CBrush* oldBrush = pDC->SelectObject(&hatchBrush);
-    CPen borderPen(PS_DOT, 1, RGB(0, 0, 0));
+    CPen borderPen(PS_DOT, kHatchBorderLineWidth, kHatchBorderColor);
     CPen* oldPen = pDC->SelectObject(&borderPen);
     pDC->Polygon(screenPts.data(), static_cast<int>(screenPts.size()));
     pDC->SelectObject(oldPen);

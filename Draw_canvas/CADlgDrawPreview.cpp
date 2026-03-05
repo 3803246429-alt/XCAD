@@ -4,6 +4,13 @@
 #include <cmath>
 #include <memory>
 
+namespace {
+const COLORREF kPreviewDashColor = RGB(200, 200, 200);
+const int kPreviewLineWidth = 1;
+const int kArcPreviewSegments = 72;
+}
+
+// 功能：绘制当前命令的动态预览图形。
 void CCADDlg::DrawPreview(CDC* pDC) {
     if (!pDC) return;
 
@@ -19,7 +26,7 @@ void CCADDlg::DrawPreview(CDC* pDC) {
         CPoint centerPt = m_transform.WorldToScreen(m_circleCenter);
         CPoint previewPt = m_transform.WorldToScreen(m_circlePreviewPoint);
 
-        CPen dashPen(PS_DASH, 1, RGB(200, 200, 200));
+        CPen dashPen(PS_DASH, kPreviewLineWidth, kPreviewDashColor);
         CPen* oldPen = pDC->SelectObject(&dashPen);
         CBrush* oldBrush = static_cast<CBrush*>(pDC->SelectStockObject(NULL_BRUSH));
         int oldBkMode = pDC->SetBkMode(TRANSPARENT);
@@ -45,7 +52,7 @@ void CCADDlg::DrawPreview(CDC* pDC) {
         CPoint p2(p3.x, p1.y);
         CPoint p4(p1.x, p3.y);
 
-        CPen dashPen(PS_DASH, 1, RGB(200, 200, 200));
+        CPen dashPen(PS_DASH, kPreviewLineWidth, kPreviewDashColor);
         CPen* oldPen = pDC->SelectObject(&dashPen);
         int oldBkMode = pDC->SetBkMode(TRANSPARENT);
 
@@ -60,7 +67,7 @@ void CCADDlg::DrawPreview(CDC* pDC) {
     }
 
     if (m_bArcCommandActive && m_arcPointCount > 0) {
-        CPen dashPen(PS_DASH, 1, RGB(200, 200, 200));
+        CPen dashPen(PS_DASH, kPreviewLineWidth, kPreviewDashColor);
         CPen* oldPen = pDC->SelectObject(&dashPen);
         int oldBkMode = pDC->SetBkMode(TRANSPARENT);
 
@@ -70,7 +77,7 @@ void CCADDlg::DrawPreview(CDC* pDC) {
             pDC->MoveTo(ps);
             pDC->LineTo(pp);
         } else if (m_arcPointCount == 2) {
-            std::shared_ptr<CLine> previewArc = CreateArcPolylineByThreePoints(m_arcStartPoint, m_arcSecondPoint, m_arcPreviewPoint, 72);
+            std::shared_ptr<CLine> previewArc = CreateArcPolylineByThreePoints(m_arcStartPoint, m_arcSecondPoint, m_arcPreviewPoint, kArcPreviewSegments);
             const auto& pts = previewArc->GetPoints();
             if (!pts.empty()) {
                 CPoint startPt = m_transform.WorldToScreen(pts[0]);

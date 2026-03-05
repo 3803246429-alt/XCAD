@@ -4,29 +4,58 @@
 
 #include <cmath>
 
-CLine::CLine() : m_bSelected(false), m_color(RGB(255, 255, 255)), m_hasFill(false), m_fillColor(RGB(255, 255, 255)) {}
+namespace {
+const COLORREF kCadColorWhite = RGB(255, 255, 255);
+const COLORREF kCadColorBlue = RGB(0, 0, 255);
+const int kLineWidth = 1;
+const int kPointMarkerHalfSize = 3;
+const double kPointEqualEpsilon = 1e-9;
+const int kMinClosedPointCount = 3;
 
+bool IsClosedPolylinePoints(const std::vector<Point2D>& points) {
+    if (points.size() < kMinClosedPointCount) {
+        return false;
+    }
+    const Point2D& a = points.front();
+    const Point2D& b = points.back();
+    return std::fabs(a.x - b.x) <= kPointEqualEpsilon && std::fabs(a.y - b.y) <= kPointEqualEpsilon;
+}
+}
+
+// 功能：构造线条对象并初始化默认显示属性。
+CLine::CLine() : m_bSelected(false), m_color(kCadColorWhite), m_hasFill(false), m_fillColor(kCadColorWhite) {}
+
+// 功能：在线条末尾追加一个顶点。
 void CLine::AddPoint(const Point2D& pt) { m_points.push_back(pt); }
 
+// 功能：设置线条选中状态。
 void CLine::SetSelected(bool sel) { m_bSelected = sel; }
 
+// 功能：获取线条选中状态。
 bool CLine::IsSelected() const { return m_bSelected; }
 
+// 功能：设置线条颜色。
 void CLine::SetColor(COLORREF color) { m_color = color; }
 
+// 功能：获取线条颜色。
 COLORREF CLine::GetColor() const { return m_color; }
 
+// 功能：设置填充开关与填充颜色。
 void CLine::SetFill(bool hasFill, COLORREF fillColor) {
     m_hasFill = hasFill;
     m_fillColor = fillColor;
 }
 
+// 功能：获取是否启用填充。
 bool CLine::HasFill() const { return m_hasFill; }
 
+// 功能：获取填充颜色。
 COLORREF CLine::GetFillColor() const { return m_fillColor; }
 
+// 功能：获取线条点集（只读）。
 const std::vector<Point2D>& CLine::GetPoints() const { return m_points; }
 
+// 功能：整体平移线条点集。
 void CLine::Move(double dx, double dy) {
     for (auto& pt : m_points) {
         pt.x += dx;
@@ -34,17 +63,11 @@ void CLine::Move(double dx, double dy) {
     }
 }
 
+// 功能：绘制线条、填充与顶点标记。
 void CLine::Draw(CDC* pDC, const CViewTransform& transform, bool bShowPoints) const {
     if (m_points.empty()) return;
 
-    const auto isClosed = [this]() {
-        if (m_points.size() < 3) return false;
-        const Point2D& a = m_points.front();
-        const Point2D& b = m_points.back();
-        return std::fabs(a.x - b.x) <= 1e-9 && std::fabs(a.y - b.y) <= 1e-9;
-    };
-
-    if (m_hasFill && isClosed()) {
+    if (m_hasFill && IsClosedPolylinePoints(m_points)) {
         std::vector<CPoint> screenPts;
         screenPts.reserve(m_points.size());
         for (const auto& p : m_points) {
@@ -60,7 +83,7 @@ void CLine::Draw(CDC* pDC, const CViewTransform& transform, bool bShowPoints) co
         }
     }
 
-    CPen pen(m_bSelected ? PS_DASH : PS_SOLID, 1, m_color);
+    CPen pen(m_bSelected ? PS_DASH : PS_SOLID, kLineWidth, m_color);
     CPen* pOldPen = pDC->SelectObject(&pen);
 
     CPoint startPt = transform.WorldToScreen(m_points[0]);
@@ -73,16 +96,18 @@ void CLine::Draw(CDC* pDC, const CViewTransform& transform, bool bShowPoints) co
     pDC->SelectObject(pOldPen);
 
     if (bShowPoints || m_bSelected) {
-        CBrush brush(RGB(0, 0, 255));
+        CBrush brush(kCadColorBlue);
         CBrush* pOldBrush = pDC->SelectObject(&brush);
         for (const auto& pt : m_points) {
             CPoint spt = transform.WorldToScreen(pt);
-            pDC->Rectangle(spt.x - 3, spt.y - 3, spt.x + 3, spt.y + 3);
+            pDC->Rectangle(spt.x - kPointMarkerHalfSize, spt.y - kPointMarkerHalfSize,
+                spt.x + kPointMarkerHalfSize, spt.y + kPointMarkerHalfSize);
         }
         pDC->SelectObject(pOldBrush);
     }
 }
 
+// 功能：命中测试占位（当前固定返回 false）。
 bool CLine::HitTest(const Point2D& pt, double tolerance) const {
     UNREFERENCED_PARAMETER(pt);
     UNREFERENCED_PARAMETER(tolerance);

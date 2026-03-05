@@ -8,58 +8,67 @@
 namespace cad {
 namespace dlg {
 
+namespace {
+const double kTwoPi = 6.28318530717958647692;
+const double kGeomEpsilon = 1e-9;
+
+double CrossValue(const CPoint& a, const CPoint& b, const CPoint& c) {
+    return static_cast<double>(b.x - a.x) * static_cast<double>(c.y - a.y)
+        - static_cast<double>(b.y - a.y) * static_cast<double>(c.x - a.x);
+}
+
+bool IsPointOnSegment(const CPoint& a, const CPoint& b, const CPoint& c) {
+    return (std::min)(a.x, b.x) <= c.x && c.x <= (std::max)(a.x, b.x)
+        && (std::min)(a.y, b.y) <= c.y && c.y <= (std::max)(a.y, b.y);
+}
+}
+
+// 功能：将角度归一化到 [0, 2π) 区间。
 double NormalizeAngle(double angle) {
-    const double twoPi = 6.28318530717958647692;
-    while (angle < 0.0) angle += twoPi;
-    while (angle >= twoPi) angle -= twoPi;
+    while (angle < 0.0) angle += kTwoPi;
+    while (angle >= kTwoPi) angle -= kTwoPi;
     return angle;
 }
 
+// 功能：计算 from 到 to 的逆时针角距。
 double AngleDistanceCCW(double from, double to) {
     const double f = NormalizeAngle(from);
     const double t = NormalizeAngle(to);
     if (t >= f) return t - f;
-    return (6.28318530717958647692 - f) + t;
+    return (kTwoPi - f) + t;
 }
 
+// 功能：把两个角点规范成标准矩形。
 CRect NormalizeRect(const CPoint& a, const CPoint& b) {
     CRect rect(a, b);
     rect.NormalizeRect();
     return rect;
 }
 
+// 功能：判断点是否在矩形范围内（含边界）。
 bool IsPointInRect(const CPoint& pt, const CRect& rect) {
     return pt.x >= rect.left && pt.x <= rect.right && pt.y >= rect.top && pt.y <= rect.bottom;
 }
 
+// 功能：判断两条线段是否相交。
 bool SegmentsIntersect(const CPoint& p1, const CPoint& p2, const CPoint& q1, const CPoint& q2) {
-    auto cross = [](const CPoint& a, const CPoint& b, const CPoint& c) {
-        return static_cast<double>(b.x - a.x) * static_cast<double>(c.y - a.y)
-            - static_cast<double>(b.y - a.y) * static_cast<double>(c.x - a.x);
-    };
-
-    auto onSegment = [](const CPoint& a, const CPoint& b, const CPoint& c) {
-        return (std::min)(a.x, b.x) <= c.x && c.x <= (std::max)(a.x, b.x)
-            && (std::min)(a.y, b.y) <= c.y && c.y <= (std::max)(a.y, b.y);
-    };
-
-    const double d1 = cross(p1, p2, q1);
-    const double d2 = cross(p1, p2, q2);
-    const double d3 = cross(q1, q2, p1);
-    const double d4 = cross(q1, q2, p2);
+    const double d1 = CrossValue(p1, p2, q1);
+    const double d2 = CrossValue(p1, p2, q2);
+    const double d3 = CrossValue(q1, q2, p1);
+    const double d4 = CrossValue(q1, q2, p2);
 
     if (((d1 > 0.0 && d2 < 0.0) || (d1 < 0.0 && d2 > 0.0)) && ((d3 > 0.0 && d4 < 0.0) || (d3 < 0.0 && d4 > 0.0))) {
         return true;
     }
 
-    const double eps = 1e-9;
-    if (std::fabs(d1) <= eps && onSegment(p1, p2, q1)) return true;
-    if (std::fabs(d2) <= eps && onSegment(p1, p2, q2)) return true;
-    if (std::fabs(d3) <= eps && onSegment(q1, q2, p1)) return true;
-    if (std::fabs(d4) <= eps && onSegment(q1, q2, p2)) return true;
+    if (std::fabs(d1) <= kGeomEpsilon && IsPointOnSegment(p1, p2, q1)) return true;
+    if (std::fabs(d2) <= kGeomEpsilon && IsPointOnSegment(p1, p2, q2)) return true;
+    if (std::fabs(d3) <= kGeomEpsilon && IsPointOnSegment(q1, q2, p1)) return true;
+    if (std::fabs(d4) <= kGeomEpsilon && IsPointOnSegment(q1, q2, p2)) return true;
     return false;
 }
 
+// 功能：判断折线与矩形是否存在相交或包含关系。
 bool PolylineIntersectsRect(const CLine& line, const CRect& rect, const CViewTransform& transform) {
     const auto& pts = line.GetPoints();
     if (pts.empty()) return false;
@@ -91,11 +100,12 @@ bool PolylineIntersectsRect(const CLine& line, const CRect& rect, const CViewTra
     return false;
 }
 
+// 功能：计算点到线段的最短距离平方。
 double DistancePointToSegmentSquared(const CPoint& p, const CPoint& a, const CPoint& b) {
     const double dx = static_cast<double>(b.x - a.x);
     const double dy = static_cast<double>(b.y - a.y);
     const double len2 = dx * dx + dy * dy;
-    if (len2 < 1e-9) {
+    if (len2 < kGeomEpsilon) {
         const double px = static_cast<double>(p.x - a.x);
         const double py = static_cast<double>(p.y - a.y);
         return px * px + py * py;
@@ -110,6 +120,7 @@ double DistancePointToSegmentSquared(const CPoint& p, const CPoint& a, const CPo
     return ddx * ddx + ddy * ddy;
 }
 
+// 功能：判断折线与圆形区域是否相交。
 bool PolylineIntersectsCircle(const CLine& line, const CPoint& center, int radius, const CViewTransform& transform) {
     const auto& pts = line.GetPoints();
     if (pts.empty()) return false;

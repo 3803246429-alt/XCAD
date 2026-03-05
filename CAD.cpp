@@ -19,6 +19,7 @@ END_MESSAGE_MAP()
 
 // ctor / 构造
 
+// 功能：构造应用对象并设置重启管理支持。
 CCADApp::CCADApp()
 {
 	// restart support / 重启支持
@@ -35,6 +36,7 @@ CCADApp theApp;
 
 // app init / 应用初始化
 
+// 功能：初始化 MFC 应用并启动主对话框。
 BOOL CCADApp::InitInstance()
 {
 	// init common controls / 初始化通用控件

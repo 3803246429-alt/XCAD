@@ -10,20 +10,29 @@
 // center:first/second/start/through/end 均为 world 坐标
 // segments 为离散段数 / tessellation count
 
+namespace {
+const int kMinCircleSegments = 8;
+const int kArcPreviewMinSegments = 8;
+const double kPi = 3.14159265358979323846;
+const double kTwoPi = 6.28318530717958647692;
+const double kGeomEpsilon = 1e-9;
+}
+
+// 功能：根据圆心和半径构造离散圆折线。
 std::shared_ptr<CLine> CCADDlg::CreateCirclePolyline(const Point2D& center, double radius, int segments) const {
     std::shared_ptr<CLine> circle = std::make_shared<CLine>();
-    if (segments < 8) segments = 8;
+    if (segments < kMinCircleSegments) segments = kMinCircleSegments;
     if (radius <= 0.0) return circle;
 
-    const double pi = 3.14159265358979323846;
     for (int i = 0; i <= segments; ++i) {
-        const double angle = (2.0 * pi * i) / static_cast<double>(segments);
+        const double angle = (kTwoPi * i) / static_cast<double>(segments);
         circle->AddPoint(Point2D(center.x + radius * std::cos(angle), center.y + radius * std::sin(angle)));
     }
 
     return circle;
 }
 
+// 功能：根据对角点构造闭合矩形折线。
 std::shared_ptr<CLine> CCADDlg::CreateRectanglePolyline(const Point2D& first, const Point2D& second) const {
     std::shared_ptr<CLine> rect = std::make_shared<CLine>();
     const Point2D p1(first.x, first.y);
@@ -39,11 +48,12 @@ std::shared_ptr<CLine> CCADDlg::CreateRectanglePolyline(const Point2D& first, co
     return rect;
 }
 
+// 功能：由三点构造圆弧折线（起点-过点-终点）。
 std::shared_ptr<CLine> CCADDlg::CreateArcPolylineByThreePoints(const Point2D& start, const Point2D& through, const Point2D& end, int segments) const {
     std::shared_ptr<CLine> arc = std::make_shared<CLine>();
 
     const double d = 2.0 * (start.x * (through.y - end.y) + through.x * (end.y - start.y) + end.x * (start.y - through.y));
-    if (std::fabs(d) < 1e-9) {
+    if (std::fabs(d) < kGeomEpsilon) {
         arc->AddPoint(start);
         arc->AddPoint(through);
         arc->AddPoint(end);
@@ -61,7 +71,7 @@ std::shared_ptr<CLine> CCADDlg::CreateArcPolylineByThreePoints(const Point2D& st
     const double rdx = start.x - center.x;
     const double rdy = start.y - center.y;
     const double radius = std::sqrt(rdx * rdx + rdy * rdy);
-    if (radius < 1e-9) {
+    if (radius < kGeomEpsilon) {
         arc->AddPoint(start);
         arc->AddPoint(end);
         return arc;
@@ -75,14 +85,14 @@ std::shared_ptr<CLine> CCADDlg::CreateArcPolylineByThreePoints(const Point2D& st
     const double throughCCW = cad::dlg::AngleDistanceCCW(aStart, aThrough);
     const bool ccw = throughCCW <= spanCCW;
 
-    if (segments < 8) segments = 8;
+    if (segments < kArcPreviewMinSegments) segments = kArcPreviewMinSegments;
     for (int i = 0; i <= segments; ++i) {
         const double t = static_cast<double>(i) / static_cast<double>(segments);
         double angle = 0.0;
         if (ccw) {
             angle = aStart + spanCCW * t;
         } else {
-            const double spanCW = 6.28318530717958647692 - spanCCW;
+            const double spanCW = kTwoPi - spanCCW;
             angle = aStart - spanCW * t;
         }
         arc->AddPoint(Point2D(center.x + radius * std::cos(angle), center.y + radius * std::sin(angle)));

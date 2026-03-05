@@ -3,6 +3,11 @@
 
 #include <memory>
 
+namespace {
+const int kArcBuildSegments = 120;
+}
+
+// 功能：处理圆弧工具左键点击，按三点法生成圆弧。
 bool CCADDlg::HandleArcToolLButtonDown(const Point2D& worldPt) {
     if (!(m_currentMode == CADMode::MODE_DRAW && m_bArcCommandActive)) return false;
 
@@ -15,7 +20,7 @@ bool CCADDlg::HandleArcToolLButtonDown(const Point2D& worldPt) {
         m_arcPreviewPoint = worldPt;
         m_arcPointCount = 2;
     } else {
-        std::shared_ptr<CLine> arc = CreateArcPolylineByThreePoints(m_arcStartPoint, m_arcSecondPoint, worldPt, 120);
+        std::shared_ptr<CLine> arc = CreateArcPolylineByThreePoints(m_arcStartPoint, m_arcSecondPoint, worldPt, kArcBuildSegments);
         if (arc->GetPoints().size() >= 2) {
             m_shapeMgr.ExecuteCommand(std::make_unique<CAddLineCommand>(&m_shapeMgr, arc));
         }
@@ -26,6 +31,7 @@ bool CCADDlg::HandleArcToolLButtonDown(const Point2D& worldPt) {
     return true;
 }
 
+// 功能：处理圆弧工具鼠标移动，更新预览终点。
 bool CCADDlg::HandleArcToolMouseMove(const Point2D& worldPt) {
     if (!(m_bArcCommandActive && m_arcPointCount > 0)) return false;
 

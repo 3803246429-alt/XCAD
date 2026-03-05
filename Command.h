@@ -7,13 +7,17 @@
 class CShapeManager;
 class CLine;
 
+// 命令接口 / command interface
 class ICadCommand {
 public:
     virtual ~ICadCommand() = default;
+    // 功能：执行命令。
     virtual void Execute() = 0;
+    // 功能：撤销命令。
     virtual void Undo() = 0;
 };
 
+// 添加线条命令 / add line command
 class CAddLineCommand : public ICadCommand {
 private:
     CShapeManager* m_pManager;
@@ -26,6 +30,7 @@ public:
     void Undo() override;
 };
 
+// 修改填充命令 / change fill command
 class CChangeLineFillCommand : public ICadCommand {
 private:
     CShapeManager* m_pManager;
@@ -42,6 +47,7 @@ public:
     void Undo() override;
 };
 
+// 修改颜色命令 / change color command
 class CChangeLineColorCommand : public ICadCommand {
 private:
     CShapeManager* m_pManager;
@@ -56,6 +62,7 @@ public:
     void Undo() override;
 };
 
+// 删除线条命令 / delete lines command
 class CDeleteLinesCommand : public ICadCommand {
 private:
     CShapeManager* m_pManager;
@@ -68,6 +75,7 @@ public:
     void Undo() override;
 };
 
+// 替换线条命令 / replace line command
 class CReplaceLineCommand : public ICadCommand {
 private:
     CShapeManager* m_pManager;

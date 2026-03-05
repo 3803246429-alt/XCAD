@@ -26,6 +26,7 @@ enum class CADCommandType {
 };
 
 
+// 主对话框类 / main CAD dialog
 class CCADDlg : public CDialogEx
 {
 public:

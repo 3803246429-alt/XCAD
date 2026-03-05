@@ -4,6 +4,7 @@
 #include <memory>
 #include <vector>
 
+// 功能：处理直线工具左键点击，创建或追加折线节点。
 bool CCADDlg::HandleLineToolLButtonDown(const Point2D& worldPt) {
     if (!(m_currentMode == CADMode::MODE_DRAW && m_bLineCommandActive)) return false;
 
@@ -19,6 +20,7 @@ bool CCADDlg::HandleLineToolLButtonDown(const Point2D& worldPt) {
     return true;
 }
 
+// 功能：处理直线工具鼠标移动，更新最后一个预览点。
 bool CCADDlg::HandleLineToolMouseMove(const Point2D& worldPt) {
     if (!(m_bIsDrawing && m_pCurrentLine)) return false;
 

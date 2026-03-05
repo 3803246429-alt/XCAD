@@ -4,6 +4,12 @@
 #include <cmath>
 #include <memory>
 
+namespace {
+const double kCircleRadiusMin = 0.0001;
+const int kCircleSegments = 96;
+}
+
+// 功能：处理圆工具左键点击，依次确定圆心与半径。
 bool CCADDlg::HandleCircleToolLButtonDown(const Point2D& worldPt) {
     if (!(m_currentMode == CADMode::MODE_DRAW && m_bCircleCommandActive)) return false;
 
@@ -15,8 +21,8 @@ bool CCADDlg::HandleCircleToolLButtonDown(const Point2D& worldPt) {
         const double dx = worldPt.x - m_circleCenter.x;
         const double dy = worldPt.y - m_circleCenter.y;
         const double radius = std::sqrt(dx * dx + dy * dy);
-        if (radius > 0.0001) {
-            m_shapeMgr.ExecuteCommand(std::make_unique<CAddLineCommand>(&m_shapeMgr, CreateCirclePolyline(m_circleCenter, radius, 96)));
+        if (radius > kCircleRadiusMin) {
+            m_shapeMgr.ExecuteCommand(std::make_unique<CAddLineCommand>(&m_shapeMgr, CreateCirclePolyline(m_circleCenter, radius, kCircleSegments)));
         }
         m_bCircleCenterPicked = false;
         m_bCircleCommandActive = false;
@@ -25,6 +31,7 @@ bool CCADDlg::HandleCircleToolLButtonDown(const Point2D& worldPt) {
     return true;
 }
 
+// 功能：处理圆工具鼠标移动，更新半径预览点。
 bool CCADDlg::HandleCircleToolMouseMove(const Point2D& worldPt) {
     if (!(m_bCircleCommandActive && m_bCircleCenterPicked)) return false;
 
