@@ -142,6 +142,8 @@ BEGIN
     PUSHBUTTON      "右移",IDC_MR,7,265,50,14
     PUSHBUTTON      "撤销",IDC_UNDO,7,438,50,14
     PUSHBUTTON      "恢复",IDC_REDO,7,454,50,14
+    EDITTEXT        IDC_FILE_PATH_INFO,7,515,672,16,ES_AUTOHSCROLL | ES_READONLY
+    EDITTEXT        IDC_FILE_SIZE_INFO,679,515,220,16,ES_AUTOHSCROLL | ES_READONLY
 END
 
 
@@ -252,6 +254,8 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
+    0, 100, 100, 0,
+    100, 100, 100, 0,
     0, 0, 0, 0
 END
 
@@ -286,7 +290,8 @@ LANGUAGE 9, 1
 #include "res\CAD.rc2"  // resource add-in / 璧勬簮闄勫姞
 #include "afxres.rc"      // MFC core resources / MFC鏍稿績璧勬簮
 #if !defined(_AFXDLL)
-#include "afxribbon.rc"   // MFC ribbon resources / MFC鍔熻兘鍖鸿祫婧?#endif
+#include "afxribbon.rc"   // MFC ribbon resources / MFC鍔熻兘鍖鸿祫婧?
+#endif
 #endif
 
 /////////////////////////////////////////////////////////////////////////////

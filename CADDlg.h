@@ -91,6 +91,8 @@ protected:
     std::vector<std::shared_ptr<CLine>> m_selectionMoveShapes;
     std::vector<std::unique_ptr<CBitmap>> m_colorButtonBitmaps;
     CEdit m_textInputEdit;
+	CEdit m_filePathEdit;
+	CEdit m_fileSizeEdit;
     CShapeManager m_shapeMgr;
     CViewTransform m_transform;
 
@@ -147,6 +149,8 @@ protected:
 	void CancelActiveCommand();
 	void FinishCurrentDrawing(bool keepCommandActive);
 	void FocusCommandLine();
+	void UpdateFileInfoDisplay();
+	void UpdateFileInfoLayout();
 	void RefreshCanvas();
 	bool SaveToCurrentPath();
 	bool SaveAsWithDialog();

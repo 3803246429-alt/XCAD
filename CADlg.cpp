@@ -209,8 +209,70 @@ BOOL CCADDlg::OnInitDialog() {
     }
 
     UpdateModeButtonHighlight();
+    UpdateFileInfoDisplay();
+    UpdateFileInfoLayout();
     FocusCommandLine();
     return FALSE;
+}
+
+void CCADDlg::UpdateFileInfoDisplay() {
+    CString filePathText;
+    CString fileSizeText;
+
+    if (!m_currentFilePath.IsEmpty()) {
+        filePathText = _T("本地文件：") + m_currentFilePath;
+
+        CFileStatus status;
+        if (CFile::GetStatus(m_currentFilePath, status)) {
+            fileSizeText.Format(_T("文件大小：%I64u 字节"), static_cast<ULONGLONG>(status.m_size));
+        }
+    }
+
+    CWnd* pPath = GetDlgItem(IDC_FILE_PATH_INFO);
+    if (pPath && ::IsWindow(pPath->GetSafeHwnd())) {
+        pPath->SetWindowText(filePathText);
+    }
+
+    CWnd* pSize = GetDlgItem(IDC_FILE_SIZE_INFO);
+    if (pSize && ::IsWindow(pSize->GetSafeHwnd())) {
+        pSize->SetWindowText(fileSizeText);
+    }
+}
+
+void CCADDlg::UpdateFileInfoLayout() {
+    CWnd* pCmd = GetDlgItem(IDC_CMD_LINE);
+    CWnd* pPath = GetDlgItem(IDC_FILE_PATH_INFO);
+    CWnd* pSize = GetDlgItem(IDC_FILE_SIZE_INFO);
+    if (!pCmd || !pPath || !pSize) {
+        return;
+    }
+    if (!::IsWindow(pCmd->GetSafeHwnd()) || !::IsWindow(pPath->GetSafeHwnd()) || !::IsWindow(pSize->GetSafeHwnd())) {
+        return;
+    }
+
+    CRect cmdRect;
+    pCmd->GetWindowRect(&cmdRect);
+    ScreenToClient(&cmdRect);
+
+    CRect dlgRect;
+    GetClientRect(&dlgRect);
+
+    int top = cmdRect.bottom;
+    int height = dlgRect.bottom - top - 4;
+    if (height < 14) {
+        height = 14;
+    }
+
+    const int totalWidth = cmdRect.Width();
+    int rightWidth = 220;
+    if (totalWidth < 440) {
+        rightWidth = totalWidth / 2;
+    }
+
+    const int leftWidth = totalWidth - rightWidth;
+
+    pPath->SetWindowPos(nullptr, cmdRect.left, top, leftWidth, height, SWP_NOZORDER | SWP_NOACTIVATE);
+    pSize->SetWindowPos(nullptr, cmdRect.left + leftWidth, top, rightWidth, height, SWP_NOZORDER | SWP_NOACTIVATE);
 }
 
 //根据当前命令状态更新按钮高亮显示
@@ -334,6 +396,7 @@ bool CCADDlg::SaveToCurrentPath() {
     } else {
         m_shapeMgr.MarkSaved();
     }
+    UpdateFileInfoDisplay();
     return ok;
 }
 
@@ -346,7 +409,9 @@ bool CCADDlg::SaveAsWithDialog() {
     if (dlg.DoModal() != IDOK) return false;
 
     m_currentFilePath = dlg.GetPathName();
-    return SaveToCurrentPath();
+    const bool saved = SaveToCurrentPath();
+    UpdateFileInfoDisplay();
+    return saved;
 }
 
 //激活直线绘制命令
@@ -475,6 +540,7 @@ void CCADDlg::OnBnClickedOpen() {
 
     m_currentFilePath = path;
     CancelCurrentDrawing();
+    UpdateFileInfoDisplay();
     RefreshCanvas();
     FocusCommandLine();
 }
@@ -494,6 +560,7 @@ void CCADDlg::OnBnClickedNew2() {
     m_shapeMgr.Clear();
     CancelCurrentDrawing();
     SaveToCurrentPath();
+    UpdateFileInfoDisplay();
     RefreshCanvas();
     FocusCommandLine();
 }

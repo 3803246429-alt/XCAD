@@ -154,5 +154,7 @@ void CCADDlg::OnSize(UINT nType, int cx, int cy) {
         m_transform.SetScreenRect(rect);
         RefreshCanvas();
     }
+
+    UpdateFileInfoLayout();
 }
 
