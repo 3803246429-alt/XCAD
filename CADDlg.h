@@ -95,6 +95,7 @@ protected:
     CViewTransform m_transform;
 
 	virtual BOOL OnInitDialog();
+	virtual void OnCancel();
 	virtual BOOL PreTranslateMessage(MSG* pMsg);
 	virtual void DrawItem(int nIDCtl, LPDRAWITEMSTRUCT lpDrawItemStruct);
 	afx_msg void OnSetFocus(CWnd* pOldWnd);

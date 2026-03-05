@@ -331,6 +331,8 @@ bool CCADDlg::SaveToCurrentPath() {
     bool ok = m_shapeMgr.SaveToDXF(std::wstring(m_currentFilePath.GetString()));
     if (!ok) {
         AfxMessageBox(_T("Save failed."));
+    } else {
+        m_shapeMgr.MarkSaved();
     }
     return ok;
 }
@@ -589,4 +591,31 @@ void CCADDlg::OnBnClickedAboutIcon() {
     CDialogEx aboutDlg(IDD_ABOUTBOX, this);
     aboutDlg.DoModal();
     FocusCommandLine();
+}
+
+// 功能：退出程序前检查是否存在未保存修改，并按用户选择处理。
+void CCADDlg::OnCancel() {
+    if (!m_shapeMgr.HasUnsavedChanges()) {
+        CDialogEx::OnCancel();
+        return;
+    }
+
+    const int choice = AfxMessageBox(
+        _T("当前有修改尚未保存，是否保存后再退出？"),
+        MB_YESNOCANCEL | MB_ICONQUESTION);
+
+    if (choice == IDCANCEL) {
+        FocusCommandLine();
+        return;
+    }
+
+    if (choice == IDYES) {
+        const bool saved = m_currentFilePath.IsEmpty() ? SaveAsWithDialog() : SaveToCurrentPath();
+        if (!saved) {
+            FocusCommandLine();
+            return;
+        }
+    }
+
+    CDialogEx::OnCancel();
 }

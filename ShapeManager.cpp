@@ -102,6 +102,8 @@ void CShapeManager::Clear() {
     m_shapes.clear();
     while (!m_undoStack.empty()) m_undoStack.pop();
     while (!m_redoStack.empty()) m_redoStack.pop();
+    m_historyIndex = 0;
+    m_savedHistoryIndex = 0;
 }
 
 // 功能：返回可写的图形容器引用。
@@ -126,6 +128,7 @@ void CShapeManager::ExecuteCommand(std::unique_ptr<ICadCommand> cmd) {
     cmd->Execute();
     m_undoStack.push(std::move(cmd));
     while (!m_redoStack.empty()) m_redoStack.pop();
+    ++m_historyIndex;
 }
 
 // 功能：执行撤销操作。
@@ -135,6 +138,7 @@ void CShapeManager::Undo() {
         m_undoStack.pop();
         cmd->Undo();
         m_redoStack.push(std::move(cmd));
+        --m_historyIndex;
     }
 }
 
@@ -145,7 +149,18 @@ void CShapeManager::Redo() {
         m_redoStack.pop();
         cmd->Execute();
         m_undoStack.push(std::move(cmd));
+        ++m_historyIndex;
     }
+}
+
+// 功能：将当前编辑状态标记为已保存。
+void CShapeManager::MarkSaved() {
+    m_savedHistoryIndex = m_historyIndex;
+}
+
+// 功能：判断当前是否有未保存修改。
+bool CShapeManager::HasUnsavedChanges() const {
+    return m_historyIndex != m_savedHistoryIndex;
 }
 
 // 功能：将当前图元导出为 DXF 文件。

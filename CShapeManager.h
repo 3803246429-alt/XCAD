@@ -14,6 +14,8 @@ private:
     std::vector<std::shared_ptr<CLine>> m_shapes;
     std::stack<std::unique_ptr<ICadCommand>> m_undoStack;
     std::stack<std::unique_ptr<ICadCommand>> m_redoStack;
+    int m_historyIndex = 0;
+    int m_savedHistoryIndex = 0;
 
 public:
     void AddShape(std::shared_ptr<CLine> shape);// add
@@ -44,4 +46,10 @@ public:
 
     //load from DXF
     bool LoadFromDXF(const std::wstring& filepath);
+
+    //标记当前状态为已保存
+    void MarkSaved();
+
+    //是否存在未保存修改
+    bool HasUnsavedChanges() const;
 };
