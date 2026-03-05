@@ -99,7 +99,7 @@ BEGIN_MESSAGE_MAP(CCADDlg, CDialogEx)
     ON_STN_CLICKED(IDC_DRAW_AREA, &CCADDlg::OnStnClickedDrawArea)
 END_MESSAGE_MAP()
 
-// 功能：构造主对话框并初始化所有运行状态。
+//构造主对话框并初始化所有运行状态
 CCADDlg::CCADDlg(CWnd* pParent)
     : CDialogEx(IDD_CAD_DIALOG, pParent)
     , m_currentMode(CADMode::MODE_NONE)
@@ -145,12 +145,12 @@ CCADDlg::CCADDlg(CWnd* pParent)
     m_hIcon = AfxGetApp()->LoadIcon(IDR_MAINFRAME);
 }
 
-// 功能：完成控件与成员变量的数据交换。
+//完成控件与成员变量的数据交换
 void CCADDlg::DoDataExchange(CDataExchange* pDX) {
     CDialogEx::DoDataExchange(pDX);
 }
 
-// 功能：初始化主界面、绘图区和颜色按钮资源。
+//初始化主界面、绘图区和颜色按钮资源
 BOOL CCADDlg::OnInitDialog() {
     CDialogEx::OnInitDialog();
 
@@ -213,7 +213,7 @@ BOOL CCADDlg::OnInitDialog() {
     return FALSE;
 }
 
-// 功能：根据当前命令状态更新按钮高亮显示。
+//根据当前命令状态更新按钮高亮显示
 void CCADDlg::UpdateModeButtonHighlight() {
     const bool lineActive = (m_currentMode == CADMode::MODE_DRAW && m_bLineCommandActive);
     const bool circleActive = (m_currentMode == CADMode::MODE_DRAW && m_bCircleCommandActive);
@@ -238,13 +238,13 @@ void CCADDlg::UpdateModeButtonHighlight() {
     SetButtonPushedState(this, IDC_DEL_LINE, eraseActive);
 }
 
-// 功能：窗口获得焦点时，把输入焦点切到命令行。
+//窗口获得焦点时，把输入焦点切到命令行
 void CCADDlg::OnSetFocus(CWnd* pOldWnd) {
     CDialogEx::OnSetFocus(pOldWnd);
     FocusCommandLine();
 }
 
-// 功能：将焦点定位到命令行输入框，并把光标放到末尾。
+//将焦点定位到命令行输入框，并把光标放到末尾
 void CCADDlg::FocusCommandLine() {
     if (m_bTextInputActive) return;
 
@@ -262,7 +262,7 @@ void CCADDlg::FocusCommandLine() {
     }
 }
 
-// 功能：只刷新绘图区，避免整窗重绘。
+//只刷新绘图区，避免整窗重绘
 void CCADDlg::RefreshCanvas() {
     CRect rect = m_transform.GetScreenRect();
     if (!rect.IsRectEmpty()) {
@@ -270,7 +270,7 @@ void CCADDlg::RefreshCanvas() {
     }
 }
 
-// 功能：激活指定命令并重置其他工具状态。
+//激活指定命令并重置其他工具状态
 void CCADDlg::ActivateCommand(CADCommandType commandType) {
     CommitTextInput(true);
     ClearSelection();
@@ -324,7 +324,7 @@ void CCADDlg::ActivateCommand(CADCommandType commandType) {
     FocusCommandLine();
 }
 
-// 功能：保存到当前文件路径。
+//保存到当前文件路径
 bool CCADDlg::SaveToCurrentPath() {
     if (m_currentFilePath.IsEmpty()) return false;
 
@@ -337,7 +337,7 @@ bool CCADDlg::SaveToCurrentPath() {
     return ok;
 }
 
-// 功能：弹出另存为对话框并保存。
+//弹出另存为对话框并保存
 bool CCADDlg::SaveAsWithDialog() {
     CFileDialog dlg(FALSE, L"dxf", nullptr,
         OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY,
@@ -349,58 +349,58 @@ bool CCADDlg::SaveAsWithDialog() {
     return SaveToCurrentPath();
 }
 
-// 功能：激活直线绘制命令。
+//激活直线绘制命令
 void CCADDlg::OnBnClickedDraw() {
     ActivateCommand(CADCommandType::LINE);
 }
 
-// 功能：激活圆形绘制命令。
+//激活圆形绘制命令
 void CCADDlg::OnBnClickedCircle() {
     ActivateCommand(CADCommandType::CIRCLE);
 }
 
-// 功能：激活矩形绘制命令。
+//激活矩形绘制命令
 void CCADDlg::OnBnClickedRectangle() {
     ActivateCommand(CADCommandType::RECTANGLE);
 }
 
-// 功能：激活文字绘制命令。
+//激活文字绘制命令
 void CCADDlg::OnBnClickedText() {
     ActivateCommand(CADCommandType::TEXT);
 }
 
-// 功能：激活圆弧绘制命令。
+//激活圆弧绘制命令
 void CCADDlg::OnBnClickedArc() {
     ActivateCommand(CADCommandType::ARC);
 }
 
-// 功能：激活填充命令。
+//激活填充命令
 void CCADDlg::OnBnClickedHatch() {
     ActivateCommand(CADCommandType::HATCH);
 }
 
-// 功能：切换到选择模式。
+//切换到选择模式
 void CCADDlg::OnBnClickedSel() {
     m_currentMode = CADMode::MODE_SELECT;
     CancelCurrentDrawing();
     UpdateModeButtonHighlight();
 }
 
-// 功能：显示顶点可视点。
+//显示顶点可视点
 void CCADDlg::OnBnClickedViewPoint() {
     m_bShowPoints = true;
     RefreshCanvas();
     FocusCommandLine();
 }
 
-// 功能：隐藏顶点可视点。
+//隐藏顶点可视点
 void CCADDlg::OnBnClickedHidePoint() {
     m_bShowPoints = false;
     RefreshCanvas();
     FocusCommandLine();
 }
 
-// 功能：以画布中心为基准放大视图。
+//以画布中心为基准放大视图
 void CCADDlg::OnBnClickedZoomin() {
     CRect rect = m_transform.GetScreenRect();
     CPoint center(rect.Width() / 2, rect.Height() / 2);
@@ -409,7 +409,7 @@ void CCADDlg::OnBnClickedZoomin() {
     FocusCommandLine();
 }
 
-// 功能：以画布中心为基准缩小视图。
+//以画布中心为基准缩小视图
 void CCADDlg::OnBnClickedZoomout() {
     CRect rect = m_transform.GetScreenRect();
     CPoint center(rect.Width() / 2, rect.Height() / 2);
@@ -418,7 +418,7 @@ void CCADDlg::OnBnClickedZoomout() {
     FocusCommandLine();
 }
 
-// 功能：重置视图变换到默认状态。
+//重置视图变换到默认状态
 void CCADDlg::OnBnClickedZoomdef() {
     CRect rect = m_transform.GetScreenRect();
     m_transform = CViewTransform();
@@ -427,35 +427,35 @@ void CCADDlg::OnBnClickedZoomdef() {
     FocusCommandLine();
 }
 
-// 功能：视图向上平移固定像素。
+//视图向上平移固定像素
 void CCADDlg::OnBnClickedMup() {
     m_transform.Pan(0, -kPanStepPixel);
     RefreshCanvas();
     FocusCommandLine();
 }
 
-// 功能：视图向下平移固定像素。
+//视图向下平移固定像素
 void CCADDlg::OnBnClickedMdown() {
     m_transform.Pan(0, kPanStepPixel);
     RefreshCanvas();
     FocusCommandLine();
 }
 
-// 功能：视图向左平移固定像素。
+//视图向左平移固定像素
 void CCADDlg::OnBnClickedMl() {
     m_transform.Pan(-kPanStepPixel, 0);
     RefreshCanvas();
     FocusCommandLine();
 }
 
-// 功能：视图向右平移固定像素。
+//视图向右平移固定像素
 void CCADDlg::OnBnClickedMr() {
     m_transform.Pan(kPanStepPixel, 0);
     RefreshCanvas();
     FocusCommandLine();
 }
 
-// 功能：打开 DXF 文件并加载到当前画布。
+//打开 DXF 文件并加载到当前画布
 void CCADDlg::OnBnClickedOpen() {
     CFileDialog dlg(TRUE, L"dxf", nullptr,
         OFN_FILEMUSTEXIST | OFN_HIDEREADONLY,
@@ -479,7 +479,7 @@ void CCADDlg::OnBnClickedOpen() {
     FocusCommandLine();
 }
 
-// 功能：新建图纸并保存到用户选择的路径。
+//新建图纸并保存到用户选择的路径
 void CCADDlg::OnBnClickedNew2() {
     CFileDialog dlg(FALSE, L"dxf", nullptr,
         OFN_OVERWRITEPROMPT | OFN_HIDEREADONLY,
@@ -498,7 +498,7 @@ void CCADDlg::OnBnClickedNew2() {
     FocusCommandLine();
 }
 
-// 功能：保存当前图纸。
+//保存当前图纸
 void CCADDlg::OnBnClickedSave() {
     if (m_currentFilePath.IsEmpty()) {
         OnBnClickedNew2();
@@ -509,37 +509,37 @@ void CCADDlg::OnBnClickedSave() {
     FocusCommandLine();
 }
 
-// 功能：另存当前图纸。
+//另存当前图纸
 void CCADDlg::OnBnClickedSaveAs() {
     SaveAsWithDialog();
     FocusCommandLine();
 }
 
-// 功能：撤销一步操作。
+//撤销一步操作
 void CCADDlg::OnBnClickedUndo() {
     m_shapeMgr.Undo();
     RefreshCanvas();
     FocusCommandLine();
 }
 
-// 功能：重做一步操作。
+//重做一步操作
 void CCADDlg::OnBnClickedRedo() {
     m_shapeMgr.Redo();
     RefreshCanvas();
     FocusCommandLine();
 }
 
-// 功能：激活整线擦除命令。
+//激活整线擦除命令
 void CCADDlg::OnBnClickedDelLine() {
     ActivateCommand(CADCommandType::ERASER);
 }
 
-// 功能：激活节点删除命令。
+//激活节点删除命令
 void CCADDlg::OnBnClickedDelPoint() {
     ActivateCommand(CADCommandType::DELETE_NODE);
 }
 
-// 功能：给选中线条应用颜色，或更新填充预览颜色。
+//给选中线条应用颜色，或更新填充预览颜色
 void CCADDlg::ApplyColorToSelectedLines(COLORREF color) {
     if (m_bHatchCommandActive) {
         m_hatchColor = color;
@@ -565,35 +565,35 @@ void CCADDlg::ApplyColorToSelectedLines(COLORREF color) {
     FocusCommandLine();
 }
 
-// 功能：把选中对象设置为白色。
+//把选中对象设置为白色
 void CCADDlg::OnBnClickedColorWhite() { ApplyColorToSelectedLines(kCadColorWhite); }
 
-// 功能：把选中对象设置为红色。
+//把选中对象设置为红色
 void CCADDlg::OnBnClickedColorRed() { ApplyColorToSelectedLines(kCadColorRed); }
 
-// 功能：把选中对象设置为黄色。
+//把选中对象设置为黄色
 void CCADDlg::OnBnClickedColorYellow() { ApplyColorToSelectedLines(kCadColorYellow); }
 
-// 功能：把选中对象设置为绿色。
+//把选中对象设置为绿色
 void CCADDlg::OnBnClickedColorGreen() { ApplyColorToSelectedLines(kCadColorGreen); }
 
-// 功能：把选中对象设置为青色。
+//把选中对象设置为青色
 void CCADDlg::OnBnClickedColorCyan() { ApplyColorToSelectedLines(kCadColorCyan); }
 
-// 功能：把选中对象设置为蓝色。
+//把选中对象设置为蓝色
 void CCADDlg::OnBnClickedColorBlue() { ApplyColorToSelectedLines(kCadColorBlue); }
 
-// 功能：把选中对象设置为洋红色。
+//把选中对象设置为洋红色
 void CCADDlg::OnBnClickedColorMagenta() { ApplyColorToSelectedLines(kCadColorMagenta); }
 
-// 功能：弹出关于窗口。
+//弹出关于窗口
 void CCADDlg::OnBnClickedAboutIcon() {
     CDialogEx aboutDlg(IDD_ABOUTBOX, this);
     aboutDlg.DoModal();
     FocusCommandLine();
 }
 
-// 功能：退出程序前检查是否存在未保存修改，并按用户选择处理。
+//退出程序前检查是否存在未保存修改，并按用户选择处理
 void CCADDlg::OnCancel() {
     if (!m_shapeMgr.HasUnsavedChanges()) {
         CDialogEx::OnCancel();

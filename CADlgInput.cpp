@@ -69,7 +69,7 @@ void CCADDlg::OnLButtonDown(UINT nFlags, CPoint point) {
     FocusCommandLine();
 }
 
-// 功能：处理鼠标移动，包括平移和各绘图工具的预览更新。
+//处理鼠标移动，包括平移和各绘图工具的预览更新
 void CCADDlg::OnMouseMove(UINT nFlags, CPoint point) {
     if (m_bIsPanning) {
         m_transform.Pan(point.x - m_lastMousePt.x, point.y - m_lastMousePt.y);
@@ -96,7 +96,7 @@ void CCADDlg::OnMouseMove(UINT nFlags, CPoint point) {
     }
 }
 
-// 功能：处理鼠标左键释放，完成框选或擦除状态收尾。
+//处理鼠标左键释放，完成框选或擦除状态收尾
 void CCADDlg::OnLButtonUp(UINT nFlags, CPoint point) {
     CRect rect = m_transform.GetScreenRect();
     CPoint localPt(point.x - rect.left, point.y - rect.top);
@@ -109,7 +109,7 @@ void CCADDlg::OnLButtonUp(UINT nFlags, CPoint point) {
     FocusCommandLine();
 }
 
-// 功能：处理鼠标右键，结束当前绘制或取消当前命令。
+//处理鼠标右键，结束当前绘制或取消当前命令
 void CCADDlg::OnRButtonDown(UINT nFlags, CPoint point) {
     UNREFERENCED_PARAMETER(nFlags);
     UNREFERENCED_PARAMETER(point);
@@ -120,7 +120,7 @@ void CCADDlg::OnRButtonDown(UINT nFlags, CPoint point) {
     }
 }
 
-// 功能：处理滚轮缩放，以鼠标位置作为缩放中心。
+//处理滚轮缩放，以鼠标位置作为缩放中心
 BOOL CCADDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) {
     ScreenToClient(&pt);
     CRect rect = m_transform.GetScreenRect();
@@ -136,7 +136,7 @@ BOOL CCADDlg::OnMouseWheel(UINT nFlags, short zDelta, CPoint pt) {
     return CDialogEx::OnMouseWheel(nFlags, zDelta, pt);
 }
 
-// 功能：处理中键按下，进入平移拖动模式。
+//处理中键按下，进入平移拖动模式
 void CCADDlg::OnMButtonDown(UINT nFlags, CPoint point) {
     UNREFERENCED_PARAMETER(nFlags);
     m_bIsPanning = true;
@@ -145,7 +145,7 @@ void CCADDlg::OnMButtonDown(UINT nFlags, CPoint point) {
     FocusCommandLine();
 }
 
-// 功能：处理中键抬起，退出平移拖动模式。
+//处理中键抬起，退出平移拖动模式
 void CCADDlg::OnMButtonUp(UINT nFlags, CPoint point) {
     UNREFERENCED_PARAMETER(nFlags);
     UNREFERENCED_PARAMETER(point);
@@ -154,7 +154,7 @@ void CCADDlg::OnMButtonUp(UINT nFlags, CPoint point) {
     FocusCommandLine();
 }
 
-// 功能：结束当前折线绘制，并按条件提交命令。
+//结束当前折线绘制，并按条件提交命令
 void CCADDlg::FinishCurrentDrawing(bool keepCommandActive) {
     CommitTextInput(true);
     if (m_bIsDrawing && m_pCurrentLine) {
@@ -182,7 +182,7 @@ void CCADDlg::FinishCurrentDrawing(bool keepCommandActive) {
     FocusCommandLine();
 }
 
-// 功能：取消当前绘制及相关工具状态。
+//取消当前绘制及相关工具状态
 void CCADDlg::CancelCurrentDrawing() {
     CommitTextInput(false);
     m_bIsDrawing = false;
@@ -216,7 +216,7 @@ void CCADDlg::CancelCurrentDrawing() {
     FocusCommandLine();
 }
 
-// 功能：取消当前激活命令，必要时保留已画有效线段。
+//取消当前激活命令，必要时保留已画有效线段
 void CCADDlg::CancelActiveCommand() {
     CommitTextInput(false);
     if (m_bIsDrawing && m_bLineCommandActive && m_pCurrentLine) {

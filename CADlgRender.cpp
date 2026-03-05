@@ -143,7 +143,7 @@ void CCADDlg::OnPaint() {
     memDC.SelectObject(pOldBmp);
 }
 
-// 功能：窗口尺寸变化时，同步更新绘图区矩形。
+//窗口尺寸变化时，同步更新绘图区矩形
 void CCADDlg::OnSize(UINT nType, int cx, int cy) {
     CDialogEx::OnSize(nType, cx, cy);
 

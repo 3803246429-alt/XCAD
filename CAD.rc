@@ -112,7 +112,7 @@ BEGIN
     PUSHBUTTON      "圆",IDC_DRAW_CIRCLE,7,311,50,15
     PUSHBUTTON      "矩形",IDC_DRAW_RECT,7,329,50,15
     PUSHBUTTON      "圆弧",IDC_DRAW_ARC,7,348,50,15
-    EDITTEXT        IDC_CMD_LINE,7,464,892,64,ES_AUTOHSCROLL | ES_WANTRETURN
+    EDITTEXT        IDC_CMD_LINE,7,474,892,41,ES_AUTOHSCROLL | ES_WANTRETURN
     LTEXT           "",IDC_DRAW_AREA,79,4,820,460,SS_SUNKEN | WS_BORDER
     PUSHBUTTON      "打开文件",IDC_OPEN,7,22,50,14
     PUSHBUTTON      "新建文件",IDC_NEW2,7,5,50,14
@@ -251,6 +251,7 @@ BEGIN
     0, 0, 0, 0,
     0, 0, 0, 0,
     0, 0, 0, 0,
+    0, 0, 0, 0,
     0, 0, 0, 0
 END
 
@@ -282,11 +283,10 @@ END
 
 #if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_ENU)
 LANGUAGE 9, 1
-#include "res\CAD.rc2"  // resource add-in / 资源附加
-#include "afxres.rc"      // MFC core resources / MFC核心资源
+#include "res\CAD.rc2"  // resource add-in / 璧勬簮闄勫姞
+#include "afxres.rc"      // MFC core resources / MFC鏍稿績璧勬簮
 #if !defined(_AFXDLL)
-#include "afxribbon.rc"   // MFC ribbon resources / MFC功能区资源
-#endif
+#include "afxribbon.rc"   // MFC ribbon resources / MFC鍔熻兘鍖鸿祫婧?#endif
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
