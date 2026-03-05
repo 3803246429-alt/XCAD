@@ -7,13 +7,13 @@
 namespace {
 const COLORREF kCadColorWhite = RGB(255, 255, 255);
 const COLORREF kCadColorBlue = RGB(0, 0, 255);
-const int kLineWidth = 1;
+const int kLineWidth = 1;//可扩展：用户设置线宽
 const int kPointMarkerHalfSize = 3;
 const int kTextInset = 2;
-const int kTextMinPixelHeight = 14;
-const int kTextMaxPixelHeight = 72;
-const double kPointEqualEpsilon = 1e-9;//接近阈值
-const int kMinClosedPointCount = 3;
+const int kTextMinPixelHeight = 14;//text
+const int kTextMaxPixelHeight = 72;//text
+const double kPointEqualEpsilon = 1e-9;//比较阈值
+const int kMinClosedPointCount = 3;//闭合图形至少点数（用于填充）
 
 bool IsClosedPolylinePoints(const std::vector<Point2D>& points) {
     if (points.size() < kMinClosedPointCount) {
@@ -78,7 +78,7 @@ void CLine::Move(double dx, double dy) {
     }
 }
 
-//绘制线条、填充与顶点标记
+//绘制线条、填充、文字与顶点标记
 void CLine::Draw(CDC* pDC, const CViewTransform& transform, bool bShowPoints) const {
     if (m_points.empty()) return;
 

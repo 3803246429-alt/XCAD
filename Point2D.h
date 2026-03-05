@@ -1,6 +1,6 @@
 #pragma once
 
-// 基础二维点结构 / basic 2D point
+//basic 2D point
 struct Point2D {
     double x;
     double y;

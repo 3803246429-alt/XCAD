@@ -30,8 +30,8 @@ public:
     bool HasFill() const;//是否填充
 	COLORREF GetFillColor() const;//读取填充颜色
     void SetTextEntity(bool isTextEntity);
-    bool IsTextEntity() const;
-    void SetTextContent(const std::wstring& text);
+    bool IsTextEntity() const;//是否有text
+    void SetTextContent(const std::wstring& text);//读取text
     const std::wstring& GetTextContent() const;
 
 	const std::vector<Point2D>& GetPoints() const;//读取点集
